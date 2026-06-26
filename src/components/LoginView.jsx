@@ -61,14 +61,14 @@ const LoginView = ({ setView, addToast }) => {
     setSubmitMessage('Loading curator workspace dashboard panel...');
     try {
       // Try login first
-      await login('admin@honeyspices.com', 'admin');
+      await login('admin@honeyspices.com', 'Admin@123');
       if (addToast) addToast('Curator workspace authenticated', 'success');
     } catch (err) {
       console.log('Bypass account not found, attempting auto-registration:', err.message);
       // If login fails (user does not exist), register them and login
       try {
-        await register('admin@honeyspices.com', 'admin', 'Devaiah Thimmaiah', '+91 99999 99999');
-        await login('admin@honeyspices.com', 'admin');
+        await register('admin@honeyspices.com', 'Admin@123', 'Devaiah Thimmaiah', '+91 99999 99999');
+        await login('admin@honeyspices.com', 'Admin@123');
         if (addToast) addToast('Curator account generated and workspace authenticated', 'success');
       } catch (signupErr) {
         setIsSubmitting(false);

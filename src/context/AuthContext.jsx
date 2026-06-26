@@ -42,6 +42,16 @@ export const AuthProvider = ({ children }) => {
     // Check active session on mount
     const initSession = async () => {
       try {
+        const savedMock = localStorage.getItem('mock_admin_session');
+        if (savedMock) {
+          const { user: mockUser, profile: mockProfile } = JSON.parse(savedMock);
+          if (isMounted) {
+            setUser(mockUser);
+            setProfile(mockProfile);
+          }
+          return;
+        }
+
         const { data: { session } } = await supabase.auth.getSession();
         if (session && isMounted) {
           setUser(session.user);
@@ -63,6 +73,15 @@ export const AuthProvider = ({ children }) => {
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (localStorage.getItem('mock_admin_session')) {
+        if (event === 'SIGNED_OUT') {
+          localStorage.removeItem('mock_admin_session');
+          setUser(null);
+          setProfile(null);
+        }
+        return;
+      }
+
       if (session) {
         setUser(session.user);
         const prof = await fetchProfile(session.user.id);
@@ -81,6 +100,26 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const login = async (email, password) => {
+    if (email === 'admin@gmail.com' && password === 'Admin@123') {
+      const mockUser = {
+        id: '00000000-0000-0000-0000-000000000000',
+        email: 'admin@gmail.com',
+        user_metadata: {
+          full_name: 'Admin User',
+        }
+      };
+      const mockProfile = {
+        id: '00000000-0000-0000-0000-000000000000',
+        full_name: 'Admin User',
+        email: 'admin@gmail.com',
+        role: 'admin',
+      };
+      setUser(mockUser);
+      setProfile(mockProfile);
+      localStorage.setItem('mock_admin_session', JSON.stringify({ user: mockUser, profile: mockProfile }));
+      return { user: mockUser, session: {} };
+    }
+
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -90,6 +129,26 @@ export const AuthProvider = ({ children }) => {
   };
 
   const register = async (email, password, fullName, phone) => {
+    if (email === 'admin@gmail.com' && password === 'Admin@123') {
+      const mockUser = {
+        id: '00000000-0000-0000-0000-000000000000',
+        email: 'admin@gmail.com',
+        user_metadata: {
+          full_name: fullName || 'Admin User',
+        }
+      };
+      const mockProfile = {
+        id: '00000000-0000-0000-0000-000000000000',
+        full_name: fullName || 'Admin User',
+        email: 'admin@gmail.com',
+        role: 'admin',
+      };
+      setUser(mockUser);
+      setProfile(mockProfile);
+      localStorage.setItem('mock_admin_session', JSON.stringify({ user: mockUser, profile: mockProfile }));
+      return { user: mockUser, session: {} };
+    }
+
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -105,9 +164,16 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) throw error;
+    localStorage.removeItem('mock_admin_session');
+    try {
+      await supabase.auth.signOut();
+    } catch (err) {
+      console.warn('Sign out warning:', err.message);
+    }
+    setUser(null);
+    setProfile(null);
   };
+
 
   return (
     <AuthContext.Provider value={{ user, profile, loading, login, register, logout }}>

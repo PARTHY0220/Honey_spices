@@ -38,7 +38,7 @@ const getProductImage = (url, category) => {
 };
 
 function App() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const [view, setView] = useState('home'); // 'home', 'products', 'cart', 'checkout', 'success'
   const [cart, setCart] = useState([]);
   const [selectedSpice, setSelectedSpice] = useState(null);
@@ -278,6 +278,159 @@ function App() {
     return cart.reduce((sum, item) => sum + item.quantity, 0);
   }, [cart]);
 
+  // Force login before allowing any interaction
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#0B0B0B] flex items-center justify-center">
+        <div className="w-8 h-8 rounded-full border border-amber-500/10 border-t-amber-500 animate-spin" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="bg-[#0B0B0B] text-zinc-100 min-h-screen font-sans selection:bg-amber-500/30 selection:text-white overflow-x-hidden flex flex-col justify-center items-center relative">
+        {/* 1. Global Drifting Colored Shadows & Smoke (Z-0 background) */}
+        <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden select-none">
+          {/* Turmeric Cloud (Bottom-Left) */}
+          <motion.div
+            animate={{
+              x: [0, 45, -20, 0],
+              y: [0, -35, 20, 0],
+              scale: [1, 1.18, 0.95, 1],
+            }}
+            transition={{
+              duration: 28,
+              repeat: Infinity,
+              ease: "easeInOut",
+            }}
+            className="absolute bottom-[-15%] left-[-15%] w-[70vw] h-[70vw] rounded-full filter blur-[45px] opacity-[0.16]"
+            style={{
+              background: 'radial-gradient(circle, #F5C518 0%, rgba(245, 197, 24, 0) 70%)',
+              willChange: 'transform',
+              transform: 'translate3d(0,0,0)',
+            }}
+          />
+
+          {/* Chili Cloud (Top-Right) */}
+          <motion.div
+            animate={{
+              x: [0, -50, 15, 0],
+              y: [0, 35, -15, 0],
+              scale: [1, 1.12, 0.9, 1],
+            }}
+            transition={{
+              duration: 32,
+              repeat: Infinity,
+              ease: "easeInOut",
+            }}
+            className="absolute top-[-15%] right-[-15%] w-[65vw] h-[65vw] rounded-full filter blur-[45px] opacity-[0.11]"
+            style={{
+              background: 'radial-gradient(circle, #FF3B30 0%, rgba(255, 59, 48, 0) 70%)',
+              willChange: 'transform',
+              transform: 'translate3d(0,0,0)',
+            }}
+          />
+
+          {/* Cinnamon Cloud (Center Background) */}
+          <motion.div
+            animate={{
+              x: [0, 25, -25, 0],
+              y: [0, 30, -30, 0],
+              scale: [0.95, 1.05, 0.95],
+              opacity: [0.06, 0.1, 0.06],
+            }}
+            transition={{
+              duration: 22,
+              repeat: Infinity,
+              ease: "easeInOut",
+            }}
+            className="absolute top-[25%] left-[25%] w-[65vw] h-[65vw] rounded-full filter blur-[45px]"
+            style={{
+              background: 'radial-gradient(circle, #C68B59 0%, rgba(198, 139, 89, 0) 70%)',
+              willChange: 'transform, opacity',
+              transform: 'translate3d(0,0,0)',
+            }}
+          />
+
+          {/* Rising Smoke Mist waves */}
+          {GLOBAL_SMOKE_CLOUDS.map((s) => (
+            <motion.div
+              key={`global-smoke-${s.id}`}
+              initial={{
+                x: `${s.startX}vw`,
+                y: '105vh',
+                opacity: 0,
+                scale: s.scale,
+              }}
+              animate={{
+                x: [`${s.startX}vw`, `${s.startX + (s.id % 2 === 0 ? 5 : -5)}vw`, `${s.startX}vw`],
+                y: '-25vh',
+                opacity: [0, s.opacity, s.opacity * 1.25, 0],
+                scale: [s.scale, s.scale * 1.25, s.scale * 0.9],
+              }}
+              transition={{
+                duration: s.duration,
+                delay: s.delay,
+                repeat: Infinity,
+                ease: "linear",
+              }}
+              className="absolute rounded-full filter blur-[30px]"
+              style={{
+                width: '35vw',
+                height: '35vw',
+                background: 'radial-gradient(circle, rgba(213, 160, 112, 0.18) 0%, rgba(213, 160, 112, 0.03) 50%, rgba(253, 251, 247, 0) 70%)',
+                willChange: 'transform, opacity',
+                transform: 'translate3d(0,0,0)',
+              }}
+            />
+          ))}
+        </div>
+
+        <div className="relative z-10 w-full flex items-center justify-center">
+          <Suspense fallback={<div className="w-8 h-8 rounded-full border border-amber-500/10 border-t-amber-500 animate-spin" />}>
+            <LoginView setView={setView} addToast={addToast} />
+          </Suspense>
+        </div>
+
+        {/* Global Toast notifications container */}
+        <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none">
+          <AnimatePresence>
+            {toasts.map((t) => (
+              <motion.div
+                key={t.id}
+                initial={{ opacity: 0, y: 30, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9, y: -10 }}
+                transition={{ type: 'spring', damping: 18, stiffness: 200 }}
+                className={`p-4 border shadow-2xl flex items-center justify-between gap-3 text-xs font-mono pointer-events-auto backdrop-blur-lg ${
+                  t.type === 'error'
+                    ? 'bg-red-500/10 border-red-500/25 text-red-400'
+                    : t.type === 'warning'
+                    ? 'bg-yellow-500/10 border-yellow-500/25 text-yellow-400'
+                    : 'bg-amber-500/10 border-amber-500/25 text-amber-400'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <span className={`w-1.5 h-1.5 rounded-full ${
+                    t.type === 'error' ? 'bg-red-500 animate-pulse' : t.type === 'warning' ? 'bg-yellow-500 animate-pulse' : 'bg-amber-500 animate-pulse'
+                  }`} />
+                  <span>{t.message}</span>
+                </div>
+                <button
+                  onClick={() => setToasts(prev => prev.filter(item => item.id !== t.id))}
+                  className="text-zinc-500 hover:text-white transition-colors cursor-pointer"
+                >
+                  ✕
+                </button>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </div>
+      </div>
+    );
+  }
+
   // Bypass storefront and render Admin Dashboard
   if (view === 'admin') {
     return (
@@ -316,7 +469,7 @@ function App() {
             repeat: Infinity,
             ease: "easeInOut",
           }}
-          className="absolute bottom-[-15%] left-[-15%] w-[70vw] h-[70vw] rounded-full filter blur-[120px] opacity-[0.16]"
+          className="absolute bottom-[-15%] left-[-15%] w-[70vw] h-[70vw] rounded-full filter blur-[45px] opacity-[0.16]"
           style={{
             background: 'radial-gradient(circle, #F5C518 0%, rgba(245, 197, 24, 0) 70%)',
             willChange: 'transform',
@@ -336,7 +489,7 @@ function App() {
             repeat: Infinity,
             ease: "easeInOut",
           }}
-          className="absolute top-[-15%] right-[-15%] w-[65vw] h-[65vw] rounded-full filter blur-[120px] opacity-[0.11]"
+          className="absolute top-[-15%] right-[-15%] w-[65vw] h-[65vw] rounded-full filter blur-[45px] opacity-[0.11]"
           style={{
             background: 'radial-gradient(circle, #FF3B30 0%, rgba(255, 59, 48, 0) 70%)',
             willChange: 'transform',
@@ -357,7 +510,7 @@ function App() {
             repeat: Infinity,
             ease: "easeInOut",
           }}
-          className="absolute top-[25%] left-[25%] w-[65vw] h-[65vw] rounded-full filter blur-[120px]"
+          className="absolute top-[25%] left-[25%] w-[65vw] h-[65vw] rounded-full filter blur-[45px]"
           style={{
             background: 'radial-gradient(circle, #C68B59 0%, rgba(198, 139, 89, 0) 70%)',
             willChange: 'transform, opacity',
@@ -387,7 +540,7 @@ function App() {
               repeat: Infinity,
               ease: "linear",
             }}
-            className="absolute rounded-full filter blur-[100px]"
+            className="absolute rounded-full filter blur-[30px]"
             style={{
               width: '35vw',
               height: '35vw',

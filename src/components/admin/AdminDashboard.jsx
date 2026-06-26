@@ -24,7 +24,7 @@ import {
 import { supabase } from '../../lib/supabase';
 
 import { 
-  initialSettings 
+  initialSettings
 } from './mockData';
 
 // Import sub-views using dynamic lazy imports
@@ -85,24 +85,29 @@ const AdminDashboard = ({ setView }) => {
         .select('*')
         .order('created_at', { ascending: false });
       if (error) throw error;
-      setProducts((data || []).map(p => ({
-        id: p.id,
-        name: p.name,
-        scientificName: p.scientific_name || 'Artisanal Selection',
-        price: `₹${new Intl.NumberFormat('en-IN').format(p.price)}`,
-        priceNum: parseFloat(p.price),
-        rating: 5.0,
-        reviews: 0,
-        origin: p.tag || 'Curator Vault',
-        image: p.image_url || '',
-        category: p.category,
-        description: p.description,
-        tag: p.tag || 'Reserve Selection',
-        stock: p.stock,
-        status: p.stock === 0 ? 'Out of Stock' : p.stock <= 10 ? 'Low Stock' : 'In Stock'
-      })));
+      if (!data || data.length === 0) {
+        setProducts([]);
+      } else {
+        setProducts((data || []).map(p => ({
+          id: p.id,
+          name: p.name,
+          scientificName: p.scientific_name || 'Artisanal Selection',
+          price: `₹${new Intl.NumberFormat('en-IN').format(p.price)}`,
+          priceNum: parseFloat(p.price),
+          rating: 5.0,
+          reviews: 0,
+          origin: p.tag || 'Curator Vault',
+          image: p.image_url || null,
+          category: p.category,
+          description: p.description,
+          tag: p.tag || 'Reserve Selection',
+          stock: p.stock,
+          status: p.stock === 0 ? 'Out of Stock' : p.stock <= 10 ? 'Low Stock' : 'In Stock'
+        })));
+      }
     } catch (err) {
       console.error('Error fetching admin products:', err);
+      setProducts([]);
     }
   };
 
@@ -122,35 +127,43 @@ const AdminDashboard = ({ setView }) => {
       
       if (error) throw error;
       
-      const mappedOrders = (data || []).map(o => {
-        const profile = o.profiles || {};
-        const items = (o.order_items || []).map(item => {
-          const p = item.products || {};
+      let mappedOrders = [];
+      if (data && data.length > 0) {
+        mappedOrders = (data || []).map(o => {
+          const profile = o.profiles || {};
+          const items = (o.order_items || []).map(item => {
+            const p = item.products || {};
+            return {
+              id: item.product_id,
+              name: p.name || 'Unknown product',
+              quantity: item.quantity,
+              price: parseFloat(item.price)
+            };
+          });
+          
           return {
-            id: item.product_id,
-            name: p.name || 'Unknown product',
-            quantity: item.quantity,
-            price: parseFloat(item.price)
+            id: o.id,
+            customerName: profile.full_name || 'Guest User',
+            email: profile.email || '',
+            phone: profile.phone || '',
+            address: o.shipping_address || '',
+            products: items,
+            amount: parseFloat(o.total_amount),
+            paymentStatus: o.payment_status,
+            orderStatus: o.order_status,
+            paymentMethod: o.payment_method,
+            date: o.created_at
           };
         });
-        
-        return {
-          id: o.id,
-          customerName: profile.full_name || 'Guest User',
-          email: profile.email || '',
-          phone: profile.phone || '',
-          address: o.shipping_address || '',
-          products: items,
-          amount: parseFloat(o.total_amount),
-          paymentStatus: o.payment_status,
-          orderStatus: o.order_status,
-          paymentMethod: o.payment_method,
-          date: o.created_at
-        };
-      });
-      setOrders(mappedOrders);
+      }
+
+      // Read local orders from localStorage and prepend them
+      const localOrders = JSON.parse(localStorage.getItem('local_orders') || '[]');
+      setOrders([...localOrders, ...mappedOrders]);
     } catch (err) {
       console.error('Error fetching admin orders:', err);
+      const localOrders = JSON.parse(localStorage.getItem('local_orders') || '[]');
+      setOrders(localOrders);
     }
   };
 
@@ -183,6 +196,7 @@ const AdminDashboard = ({ setView }) => {
       setCustomers(mappedCustomers);
     } catch (err) {
       console.error('Error fetching admin customers:', err);
+      setCustomers([]);
     }
   };
 
@@ -193,18 +207,24 @@ const AdminDashboard = ({ setView }) => {
         .select('*')
         .order('created_at', { ascending: false });
       if (error) throw error;
-      setMessages((data || []).map(m => ({
-        id: m.id,
-        name: m.name,
-        email: m.email,
-        phone: m.phone || 'N/A',
-        message: m.message,
-        date: m.created_at,
-        replied: m.replied,
-        replyText: m.reply_text || ''
-      })));
+      
+      if (!data || data.length === 0) {
+        setMessages([]);
+      } else {
+        setMessages((data || []).map(m => ({
+          id: m.id,
+          name: m.name,
+          email: m.email,
+          phone: m.phone || 'N/A',
+          message: m.message,
+          date: m.created_at,
+          replied: m.replied,
+          replyText: m.reply_text || ''
+        })));
+      }
     } catch (err) {
       console.error('Error fetching admin messages:', err);
+      setMessages([]);
     }
   };
 
@@ -303,6 +323,21 @@ const AdminDashboard = ({ setView }) => {
       let pStatus = 'Pending';
       if (newStatus === 'Delivered') pStatus = 'Paid';
       if (newStatus === 'Cancelled') pStatus = 'Failed';
+
+      if (typeof orderId === 'string' && orderId.startsWith('ORD-')) {
+        // Handle local mock order update
+        const localOrders = JSON.parse(localStorage.getItem('local_orders') || '[]');
+        const updatedLocal = localOrders.map(o => {
+          if (o.id === orderId) {
+            return { ...o, orderStatus: newStatus, paymentStatus: pStatus };
+          }
+          return o;
+        });
+        localStorage.setItem('local_orders', JSON.stringify(updatedLocal));
+        addToast(`Local order status updated to ${newStatus}`, 'success');
+        await fetchAllOrders();
+        return;
+      }
 
       const { error } = await supabase
         .from('orders')

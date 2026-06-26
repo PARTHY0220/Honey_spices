@@ -102,6 +102,34 @@ const CheckoutView = ({ cart, onCheckoutSuccess, setView, addToast }) => {
 
       if (cartError) throw cartError;
 
+      // Save order locally to localStorage so that the mock admin dashboard can load it
+      try {
+        const newLocalOrder = {
+          id: `ORD-${Math.floor(1000 + Math.random() * 9000)}`,
+          customerName: billing.name,
+          email: billing.email || user.email || 'customer@example.com',
+          phone: user.user_metadata?.phone || '+91 99999 99999',
+          address: `${billing.name}\n${billing.address}\n${billing.city}, ${billing.state} - ${billing.zip}`,
+          products: cart.map(item => ({
+            id: item.id,
+            name: item.name,
+            quantity: item.quantity,
+            price: item.priceNum
+          })),
+          amount: total,
+          paymentStatus: 'Paid',
+          orderStatus: 'Pending',
+          paymentMethod: paymentMethod.toUpperCase(),
+          date: new Date().toISOString()
+        };
+
+        const existingLocalOrders = JSON.parse(localStorage.getItem('local_orders') || '[]');
+        existingLocalOrders.unshift(newLocalOrder);
+        localStorage.setItem('local_orders', JSON.stringify(existingLocalOrders));
+      } catch (localErr) {
+        console.warn('Error saving order locally to localStorage:', localErr);
+      }
+
       return true;
     } catch (err) {
       console.error('Error saving order:', err);
@@ -110,12 +138,55 @@ const CheckoutView = ({ cart, onCheckoutSuccess, setView, addToast }) => {
     }
   };
 
+  const validateUPI = (upi) => {
+    const regex = /^[\w.-]+@[\w.-]+$/;
+    return regex.test(upi);
+  };
+
+  const validateCardNumber = (num) => {
+    const cleanNum = num.replace(/\s+/g, '');
+    if (!/^\d{16}$/.test(cleanNum)) return false;
+    
+    // Luhn algorithm check
+    let sum = 0;
+    let shouldDouble = false;
+    for (let i = cleanNum.length - 1; i >= 0; i--) {
+      let digit = parseInt(cleanNum.charAt(i));
+      if (shouldDouble) {
+        digit *= 2;
+        if (digit > 9) digit -= 9;
+      }
+      sum += digit;
+      shouldDouble = !shouldDouble;
+    }
+    return sum % 10 === 0;
+  };
+
+  const validateCardExpiry = (expiry) => {
+    if (!/^(0[1-9]|1[0-2])\/\d{2}$/.test(expiry)) return false;
+    const [month, year] = expiry.split('/').map(Number);
+    const now = new Date();
+    const currentYear = now.getFullYear() % 100;
+    const currentMonth = now.getMonth() + 1;
+    if (year < currentYear) return false;
+    if (year === currentYear && month < currentMonth) return false;
+    return true;
+  };
+
+  const validateCardCvv = (cvv) => {
+    return /^\d{3}$/.test(cvv);
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!billing.name || !billing.email || !billing.address || !billing.city || !billing.zip) return;
 
     if (paymentMethod === 'upi') {
       if (!upiId) return;
+      if (!validateUPI(upiId)) {
+        if (addToast) addToast('Invalid UPI ID format (e.g. user@bank)', 'error');
+        return;
+      }
       setIsProcessing(true);
       setProcessStep('Awaiting UPI VPA handshake validation...');
       
@@ -138,6 +209,20 @@ const CheckoutView = ({ cart, onCheckoutSuccess, setView, addToast }) => {
       }, 1200);
     } else {
       if (!payment.cardNumber || !payment.cardExpiry || !payment.cardCvv) return;
+      
+      if (!validateCardNumber(payment.cardNumber)) {
+        if (addToast) addToast('Invalid Card Number (must be 16 digits and pass Luhn check)', 'error');
+        return;
+      }
+      if (!validateCardExpiry(payment.cardExpiry)) {
+        if (addToast) addToast('Invalid Card Expiry Date (use MM/YY and must not be expired)', 'error');
+        return;
+      }
+      if (!validateCardCvv(payment.cardCvv)) {
+        if (addToast) addToast('Invalid CVV (must be 3 digits)', 'error');
+        return;
+      }
+
       setIsProcessing(true);
       setProcessStep('Verifying card credentials with bank API...');
       
@@ -161,7 +246,7 @@ const CheckoutView = ({ cart, onCheckoutSuccess, setView, addToast }) => {
   return (
     <div className="bg-transparent text-zinc-100 min-h-screen pt-32 pb-24 px-6 relative overflow-hidden">
       {/* Background radial glow */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-amber-500/[0.015] rounded-full filter blur-[120px] pointer-events-none z-0" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-amber-500/[0.015] rounded-full filter blur-[45px] pointer-events-none z-0" />
 
       <div className="max-w-6xl mx-auto relative z-10">
         <h1 className="text-3xl sm:text-4xl font-serif tracking-wider font-light mb-12 text-white text-center sm:text-left">
@@ -447,7 +532,8 @@ const CheckoutView = ({ cart, onCheckoutSuccess, setView, addToast }) => {
             {/* Secure Submit Button */}
             <button
               type="submit"
-              className="w-full py-4 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white font-semibold text-xs tracking-[0.2em] uppercase transition-all duration-300 shadow-[0_4px_15px_rgba(217,119,6,0.15)] flex items-center justify-center gap-2 cursor-pointer focus:outline-none"
+              disabled={isProcessing}
+              className={`w-full py-4 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white font-semibold text-xs tracking-[0.2em] uppercase transition-all duration-300 shadow-[0_4px_15px_rgba(217,119,6,0.15)] flex items-center justify-center gap-2 focus:outline-none ${isProcessing ? 'opacity-50 cursor-not-allowed pointer-events-none' : 'cursor-pointer'}`}
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
@@ -458,7 +544,8 @@ const CheckoutView = ({ cart, onCheckoutSuccess, setView, addToast }) => {
             <button
               type="button"
               onClick={() => setView('cart')}
-              className="w-full py-3.5 border border-white/10 bg-transparent text-zinc-300 hover:border-amber-500 hover:text-amber-400 font-semibold text-xs tracking-[0.2em] uppercase transition-all duration-300 cursor-pointer focus:outline-none"
+              disabled={isProcessing}
+              className={`w-full py-3.5 border border-white/10 bg-transparent text-zinc-300 hover:border-amber-500 hover:text-amber-400 font-semibold text-xs tracking-[0.2em] uppercase transition-all duration-300 focus:outline-none ${isProcessing ? 'opacity-50 cursor-not-allowed pointer-events-none' : 'cursor-pointer'}`}
             >
               Back to Cart
             </button>
