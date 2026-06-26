@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Eye, 
@@ -10,9 +10,7 @@ import {
   SlidersHorizontal, 
   MapPin, 
   Phone, 
-  Mail, 
-  Calendar, 
-  CreditCard 
+  Mail
 } from 'lucide-react';
 
 const OrdersView = ({ orders, updateOrderStatus, addToast }) => {

@@ -1,30 +1,28 @@
-import React from 'react';
+const CRITIQUES = [
+  {
+    id: 1,
+    name: 'Chef Antoine Valois',
+    title: 'Three Michelin Stars, Paris',
+    quote: "The Kashmir Saffron has an unparalleled terpene lock. Under L'ÉPICE's violet-glass preservation, it retains its deep honeyed essence months longer than any commercial crop.",
+    rating: 5
+  },
+  {
+    id: 2,
+    name: 'Elena Rostova',
+    title: 'Gastronomy Publisher, Rome',
+    quote: "The Alleppey Gold Turmeric's earthy citrus warmth has completely elevated our test kitchens. Its high essential oil content offers a brilliant glowing color and depth.",
+    rating: 5
+  },
+  {
+    id: 3,
+    name: 'Marcus Chen',
+    title: 'Executive Developer, Tokyo',
+    quote: "L'ÉPICE blends are true culinary alchemy. The Royal Garam Masala delivers a roasted cardamom and mace profile that is unmatched in flavor complexity.",
+    rating: 5
+  }
+];
 
 const Testimonials = () => {
-  const critiques = [
-    {
-      id: 1,
-      name: 'Chef Antoine Valois',
-      title: 'Three Michelin Stars, Paris',
-      quote: "The Kashmir Saffron has an unparalleled terpene lock. Under L'ÉPICE's violet-glass preservation, it retains its deep honeyed essence months longer than any commercial crop.",
-      rating: 5
-    },
-    {
-      id: 2,
-      name: 'Elena Rostova',
-      title: 'Gastronomy Publisher, Rome',
-      quote: "The Alleppey Gold Turmeric's earthy citrus warmth has completely elevated our test kitchens. Its high essential oil content offers a brilliant glowing color and depth.",
-      rating: 5
-    },
-    {
-      id: 3,
-      name: 'Marcus Chen',
-      title: 'Executive Developer, Tokyo',
-      quote: "L'ÉPICE blends are true culinary alchemy. The Royal Garam Masala delivers a roasted cardamom and mace profile that is unmatched in flavor complexity.",
-      rating: 5
-    }
-  ];
-
   return (
     <section id="testimonials" className="py-24 sm:py-32 px-6 bg-transparent">
       <div className="max-w-7xl mx-auto">
@@ -41,7 +39,7 @@ const Testimonials = () => {
 
         {/* Critiques Grid */}
         <div className="grid md:grid-cols-3 gap-8">
-          {critiques.map((critique) => (
+          {CRITIQUES.map((critique) => (
             <div
               key={critique.id}
               className="bg-neutral-900/30 border border-white/5 p-8 rounded-none flex flex-col justify-between hover:border-amber-500/20 hover:shadow-[0_10px_30px_rgba(0,0,0,0.3)] transition-all duration-500 backdrop-blur-sm"

@@ -1,113 +1,25 @@
-import React, { useState, useMemo } from 'react';
-import turmericImg from '../assets/turmeric_jar.png';
-import chiliImg from '../assets/chili_jar.png';
-import garamMasalaImg from '../assets/garam_masala_jar.png';
+import { useState, useMemo } from 'react';
 
-const Products = ({ onProductClick, onAddToCart, showFilters = false, setView }) => {
+
+const CATEGORIES = [
+  { id: 'all', name: 'All Categories' },
+  { id: 'single-origin', name: 'Single-Origin' },
+  { id: 'blends', name: 'Spice Blends' },
+  { id: 'honey-elixirs', name: 'Honey & Elixirs' }
+];
+
+const Products = ({ products, productsLoading = false, onProductClick, onAddToCart, showFilters = false, setView }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
 
-  const productsList = [
-    {
-      id: 'turmeric',
-      name: 'Alleppey Gold Turmeric',
-      scientificName: 'Curcuma longa',
-      price: '₹950',
-      priceNum: 950,
-      rating: 4.9,
-      reviews: 148,
-      origin: 'Kerala, India',
-      image: turmericImg,
-      category: 'single-origin',
-      description: 'Sourced from the hills of Alleppey, offering an exceptionally high curcumin content and warm earthy flavor.',
-      tag: 'Imperial Selection'
-    },
-    {
-      id: 'chili',
-      name: 'Kashmiri Chili Powder',
-      scientificName: 'Capsicum annuum',
-      price: '₹850',
-      priceNum: 850,
-      rating: 4.8,
-      reviews: 96,
-      origin: 'Kashmir Valley',
-      image: chiliImg,
-      category: 'single-origin',
-      description: 'Hand-harvested vibrant crimson pods dried and ground to preserve their rich color and mild, sweet heat.',
-      tag: 'Ultra-Rare Grade A'
-    },
-    {
-      id: 'garam-masala',
-      name: 'Royal Garam Masala',
-      scientificName: 'Artisanal Blend',
-      price: '₹1,100',
-      priceNum: 1100,
-      rating: 5.0,
-      reviews: 112,
-      origin: 'Rajasthan, India',
-      image: garamMasalaImg,
-      category: 'blends',
-      description: 'A traditional royal recipe blending black cardamom, star anise, cloves, and mace, dry-roasted and stone-ground.',
-      tag: 'Reserve Blend'
-    },
-    {
-      id: 'cinnamon',
-      name: 'Ceylon Cinnamon Bark',
-      scientificName: 'Cinnamomum verum',
-      price: '₹1,300',
-      priceNum: 1300,
-      rating: 4.9,
-      reviews: 84,
-      origin: 'Matara, Sri Lanka',
-      image: turmericImg, // Reused asset for visual consistency
-      category: 'single-origin',
-      description: 'Delicate, multi-layered quills of authentic Ceylon cinnamon, releasing a refined sweet, warm woody aroma.',
-      tag: 'Fine Quill Selection'
-    },
-    {
-      id: 'black-pepper',
-      name: 'Malabar Tellicherry Pepper',
-      scientificName: 'Piper nigrum',
-      price: '₹980',
-      priceNum: 980,
-      rating: 4.7,
-      reviews: 104,
-      origin: 'Malabar Coast, India',
-      image: garamMasalaImg, // Reused asset
-      category: 'single-origin',
-      description: 'Extra-large vine-ripened black peppercorns offering deep complex pungency, hot citrus sharpness, and woodsmoke notes.',
-      tag: 'Premium Pepper'
-    },
-    {
-      id: 'saffron-honey',
-      name: 'Saffron Infused Honey',
-      scientificName: 'Mellifica & Crocus',
-      price: '₹1,750',
-      priceNum: 1750,
-      rating: 5.0,
-      reviews: 67,
-      origin: 'Kashmiri Highlands',
-      image: turmericImg, // Reused asset
-      category: 'honey-elixirs',
-      description: 'Pure, organic wildflower honey cold-steeped with Kashmiri saffron threads for a honeyed floral luxury finish.',
-      tag: 'Limited Release'
-    }
-  ];
-
-  const categories = [
-    { id: 'all', name: 'All Categories' },
-    { id: 'single-origin', name: 'Single-Origin' },
-    { id: 'blends', name: 'Spice Blends' },
-    { id: 'honey-elixirs', name: 'Honey & Elixirs' }
-  ];
-
   // Filters logic
   const filteredProducts = useMemo(() => {
-    let result = productsList;
+    let result = products || [];
     
-    // If showFilters is false (homepage view), return only first 3 items (curated list)
+    // If showFilters is false (homepage view), return only featured products (or first 3 fallback)
     if (!showFilters) {
-      return result.slice(0, 3);
+      const featured = result.filter(p => p.featured);
+      return featured.length > 0 ? featured : result.slice(0, 3);
     }
 
     if (selectedCategory !== 'all') {
@@ -124,7 +36,15 @@ const Products = ({ onProductClick, onAddToCart, showFilters = false, setView })
     }
     
     return result;
-  }, [showFilters, selectedCategory, searchQuery]);
+  }, [products, showFilters, selectedCategory, searchQuery]);
+
+  if (productsLoading) {
+    return (
+      <div className="py-24 sm:py-32 flex items-center justify-center min-h-[300px]">
+        <div className="w-8 h-8 rounded-full border border-amber-500/10 border-t-amber-500 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <section id="products" className="py-24 sm:py-32 px-6 bg-transparent">
@@ -159,7 +79,7 @@ const Products = ({ onProductClick, onAddToCart, showFilters = false, setView })
 
             {/* Filter Pills */}
             <div className="flex flex-wrap gap-3 justify-center">
-              {categories.map((cat) => (
+              {CATEGORIES.map((cat) => (
                 <button
                   key={cat.id}
                   onClick={() => setSelectedCategory(cat.id)}
@@ -192,6 +112,8 @@ const Products = ({ onProductClick, onAddToCart, showFilters = false, setView })
                     <img
                       src={product.image}
                       alt={product.name}
+                      loading="lazy"
+                      decoding="async"
                       className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105 filter brightness-[0.85] group-hover:brightness-95"
                     />
                     <span className="absolute top-3 left-3 bg-neutral-900/80 border border-amber-500/25 px-2.5 py-1 text-[8px] tracking-[0.2em] uppercase font-bold text-amber-400">

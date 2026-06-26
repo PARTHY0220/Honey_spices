@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
-import heroImg from '../assets/hero.png';
-import turmericImg from '../assets/turmeric_jar.png';
+import { useState, useEffect, useRef } from 'react';
+import heroImg from '../assets/hero.webp';
+import turmericImg from '../assets/turmeric_jar.webp';
 
 const AboutSection = () => {
   const sectionRef = useRef(null);

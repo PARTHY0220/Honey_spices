@@ -1,10 +1,9 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { 
   Search, 
   CreditCard, 
   DollarSign, 
   AlertTriangle,
-  ArrowUpDown,
   Filter
 } from 'lucide-react';
 

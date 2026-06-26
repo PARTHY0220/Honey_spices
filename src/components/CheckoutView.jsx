@@ -1,7 +1,10 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { supabase } from '../lib/supabase';
+import { useAuth } from '../context/AuthContext.jsx';
 
-const CheckoutView = ({ cart, onCheckoutSuccess, setView }) => {
+const CheckoutView = ({ cart, onCheckoutSuccess, setView, addToast }) => {
+  const { user } = useAuth();
   const subtotal = cart.reduce((sum, item) => sum + item.priceNum * item.quantity, 0);
   const shipping = subtotal > 1000 ? 0 : 100;
   const tax = subtotal * 0.05;
@@ -54,6 +57,59 @@ const CheckoutView = ({ cart, onCheckoutSuccess, setView }) => {
     setPayment(prev => ({ ...prev, [id]: value }));
   };
 
+  const saveOrderToSupabase = async () => {
+    if (!user) {
+      if (addToast) addToast('Error: Please log in to complete checkout', 'error');
+      return false;
+    }
+
+    try {
+      // 1. Create order record
+      const { data: orderData, error: orderError } = await supabase
+        .from('orders')
+        .insert({
+          user_id: user.id,
+          total_amount: total,
+          payment_method: paymentMethod.toUpperCase(),
+          payment_status: 'Paid',
+          order_status: 'Pending',
+          shipping_address: `${billing.name}\n${billing.address}\n${billing.city}, ${billing.state} - ${billing.zip}`
+        })
+        .select()
+        .single();
+
+      if (orderError) throw orderError;
+
+      // 2. Create order items record
+      const orderItems = cart.map(item => ({
+        order_id: orderData.id,
+        product_id: item.id,
+        quantity: item.quantity,
+        price: item.priceNum
+      }));
+
+      const { error: itemsError } = await supabase
+        .from('order_items')
+        .insert(orderItems);
+
+      if (itemsError) throw itemsError;
+
+      // 3. Clear customer cart on database
+      const { error: cartError } = await supabase
+        .from('cart')
+        .delete()
+        .eq('user_id', user.id);
+
+      if (cartError) throw cartError;
+
+      return true;
+    } catch (err) {
+      console.error('Error saving order:', err);
+      if (addToast) addToast(err.message || 'Error processing order in database', 'error');
+      return false;
+    }
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!billing.name || !billing.email || !billing.address || !billing.city || !billing.zip) return;
@@ -69,8 +125,13 @@ const CheckoutView = ({ cart, onCheckoutSuccess, setView }) => {
           setProcessStep('Awaiting user authentication passcode...');
           setTimeout(() => {
             setProcessStep('Settling transaction ledger...');
-            setTimeout(() => {
-              onCheckoutSuccess();
+            setTimeout(async () => {
+              const success = await saveOrderToSupabase();
+              setIsProcessing(false);
+              if (success) {
+                if (addToast) addToast('Order settled and confirmed!', 'success');
+                onCheckoutSuccess();
+              }
             }, 1000);
           }, 1500);
         }, 1500);
@@ -84,8 +145,13 @@ const CheckoutView = ({ cart, onCheckoutSuccess, setView }) => {
         setProcessStep('Redirecting to 3D Secure Verification / OTP window...');
         setTimeout(() => {
           setProcessStep('Settling transaction ledger...');
-          setTimeout(() => {
-            onCheckoutSuccess();
+          setTimeout(async () => {
+            const success = await saveOrderToSupabase();
+            setIsProcessing(false);
+            if (success) {
+              if (addToast) addToast('Order settled and confirmed!', 'success');
+              onCheckoutSuccess();
+            }
           }, 1200);
         }, 1500);
       }, 1200);

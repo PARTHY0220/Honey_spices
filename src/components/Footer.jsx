@@ -1,5 +1,3 @@
-import React from 'react';
-
 const Footer = ({ setView }) => {
   const handleLinkClick = (e, targetView) => {
     e.preventDefault();

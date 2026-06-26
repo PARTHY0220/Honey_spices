@@ -1,46 +1,79 @@
-import React, { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth } from '../context/AuthContext.jsx';
+import { supabase } from '../lib/supabase';
 
-const LoginView = ({ setView }) => {
+const LoginView = ({ setView, addToast }) => {
+  const { user, profile, login, register } = useAuth();
   const [mode, setMode] = useState('signin'); // 'signin', 'signup', 'forgot'
   const [formData, setFormData] = useState({ name: '', email: '', password: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState('');
+
+  useEffect(() => {
+    if (user && profile) {
+      if (profile.role === 'admin') {
+        setView('admin');
+      } else {
+        setView('home');
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [user, profile, setView]);
 
   const handleInputChange = (e) => {
     const { id, value } = e.target;
     setFormData((prev) => ({ ...prev, [id]: value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
 
-    if (mode === 'signin') {
-      setSubmitMessage('Authenticating spice credential logs...');
-      setTimeout(() => {
-        setIsSubmitting(false);
-        if (formData.email === 'admin@honeyspices.com' || formData.email === 'admin') {
-          setView('admin');
-        } else {
-          setView('home');
-        }
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      }, 2000);
-    } else if (mode === 'signup') {
-      setSubmitMessage('Creating secure user profile...');
-      setTimeout(() => {
-        setIsSubmitting(false);
-        setView('home');
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      }, 2000);
-    } else if (mode === 'forgot') {
-      setSubmitMessage('Broadcasting recovery key link...');
-      setTimeout(() => {
+    try {
+      if (mode === 'signin') {
+        setSubmitMessage('Authenticating spice credential logs...');
+        await login(formData.email, formData.password);
+        if (addToast) addToast('Welcome back to Honey Spices!', 'success');
+      } else if (mode === 'signup') {
+        setSubmitMessage('Creating secure user profile...');
+        await register(formData.email, formData.password, formData.name, '');
+        if (addToast) addToast('Registration successful! Welcome!', 'success');
+      } else if (mode === 'forgot') {
+        setSubmitMessage('Broadcasting recovery key link...');
+        const { error } = await supabase.auth.resetPasswordForEmail(formData.email, {
+          redirectTo: window.location.origin,
+        });
+        if (error) throw error;
+        if (addToast) addToast('Password reset link sent to your email!', 'success');
         setIsSubmitting(false);
         setMode('signin');
         setFormData(prev => ({ ...prev, password: '' }));
-      }, 2500);
+      }
+    } catch (err) {
+      setIsSubmitting(false);
+      if (addToast) addToast(err.message || 'An error occurred during authentication', 'error');
+    }
+  };
+
+  const handleBypass = async () => {
+    setIsSubmitting(true);
+    setSubmitMessage('Loading curator workspace dashboard panel...');
+    try {
+      // Try login first
+      await login('admin@honeyspices.com', 'admin');
+      if (addToast) addToast('Curator workspace authenticated', 'success');
+    } catch (err) {
+      console.log('Bypass account not found, attempting auto-registration:', err.message);
+      // If login fails (user does not exist), register them and login
+      try {
+        await register('admin@honeyspices.com', 'admin', 'Devaiah Thimmaiah', '+91 99999 99999');
+        await login('admin@honeyspices.com', 'admin');
+        if (addToast) addToast('Curator account generated and workspace authenticated', 'success');
+      } catch (signupErr) {
+        setIsSubmitting(false);
+        if (addToast) addToast('Bypass failed: ' + signupErr.message, 'error');
+      }
     }
   };
 
@@ -125,16 +158,7 @@ const LoginView = ({ setView }) => {
                 {/* Demo Admin bypass */}
                 <button
                   type="button"
-                  onClick={() => {
-                    setFormData({ email: 'admin@honeyspices.com', name: 'Devaiah Thimmaiah', password: 'admin' });
-                    setIsSubmitting(true);
-                    setSubmitMessage('Loading curator workspace dashboard panel...');
-                    setTimeout(() => {
-                      setIsSubmitting(false);
-                      setView('admin');
-                      window.scrollTo({ top: 0, behavior: 'smooth' });
-                    }, 1500);
-                  }}
+                  onClick={handleBypass}
                   className="w-full text-center text-[10px] text-amber-500/60 hover:text-amber-400 transition-colors tracking-widest font-mono uppercase cursor-pointer py-1.5 border border-dashed border-amber-500/25 block mt-2"
                 >
                   Bypass: Demo Admin Login

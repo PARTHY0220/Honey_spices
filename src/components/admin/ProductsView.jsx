@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Plus, 
@@ -8,8 +8,6 @@ import {
   Filter, 
   AlertTriangle, 
   Image as ImageIcon,
-  DollarSign,
-  Layers,
   Sparkles
 } from 'lucide-react';
 
@@ -22,6 +20,7 @@ const ProductsView = ({ products, addProduct, editProduct, deleteProduct, addToa
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null); // Product object when editing
   const [deletingProduct, setDeletingProduct] = useState(null); // Product object when deleting
+  const [imageFile, setImageFile] = useState(null);
 
   // Form Fields
   const [formFields, setFormFields] = useState({
@@ -85,6 +84,7 @@ const ProductsView = ({ products, addProduct, editProduct, deleteProduct, addToa
       description: '',
       tag: ''
     });
+    setImageFile(null);
     setIsAddModalOpen(true);
   };
 
@@ -95,33 +95,8 @@ const ProductsView = ({ products, addProduct, editProduct, deleteProduct, addToa
       return;
     }
 
-    const priceNumVal = parseFloat(formFields.priceNum);
-    const stockVal = parseInt(formFields.stock);
-    let calculatedStatus = 'In Stock';
-    if (stockVal === 0) calculatedStatus = 'Out of Stock';
-    else if (stockVal <= 10) calculatedStatus = 'Low Stock';
-
-    const newProd = {
-      id: formFields.name.toLowerCase().replace(/\s+/g, '-'),
-      name: formFields.name,
-      scientificName: formFields.scientificName || 'Artisanal Selection',
-      price: `₹${new Intl.NumberFormat('en-IN').format(priceNumVal)}`,
-      priceNum: priceNumVal,
-      rating: 5.0,
-      reviews: 0,
-      origin: 'Curator Vault',
-      // Provide fallback generated placeholder image representation or reuse asset
-      image: products[0]?.image || '', 
-      category: formFields.category,
-      description: formFields.description || 'Rare organic batch, slow-cured and certified.',
-      tag: formFields.tag || 'New Arrival',
-      stock: stockVal,
-      status: calculatedStatus
-    };
-
-    addProduct(newProd);
+    addProduct(formFields, imageFile);
     setIsAddModalOpen(false);
-    addToast(`${newProd.name} added to vault catalog`, 'success');
   };
 
   const openEditModal = (prod) => {
@@ -135,6 +110,7 @@ const ProductsView = ({ products, addProduct, editProduct, deleteProduct, addToa
       description: prod.description,
       tag: prod.tag
     });
+    setImageFile(null);
   };
 
   const handleEditSubmit = (e) => {
@@ -159,12 +135,12 @@ const ProductsView = ({ products, addProduct, editProduct, deleteProduct, addToa
       category: formFields.category,
       description: formFields.description,
       tag: formFields.tag,
+      image: editingProduct.image, // pass old image URL to update if new file is empty
       status: calculatedStatus
     };
 
-    editProduct(editingProduct.id, updatedFields);
+    editProduct(editingProduct.id, updatedFields, imageFile);
     setEditingProduct(null);
-    addToast(`${formFields.name} updated successfully`, 'success');
   };
 
   const confirmDelete = (prod) => {
@@ -490,6 +466,16 @@ const ProductsView = ({ products, addProduct, editProduct, deleteProduct, addToa
                   />
                 </div>
 
+                <div className="space-y-1">
+                  <label className="text-stone-500 dark:text-zinc-400 font-medium">Product Image File</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setImageFile(e.target.files[0])}
+                    className="w-full p-2 bg-white dark:bg-neutral-950 border border-stone-200 dark:border-white/5 text-stone-900 dark:text-white rounded focus:outline-none focus:border-amber-500 font-mono text-[11px]"
+                  />
+                </div>
+
                 <div className="flex justify-end gap-2 pt-4 border-t border-stone-200 dark:border-white/5">
                   <button
                     type="button"
@@ -620,6 +606,16 @@ const ProductsView = ({ products, addProduct, editProduct, deleteProduct, addToa
                     onChange={handleFormInputChange}
                     rows="3"
                     className="w-full p-2 bg-white dark:bg-neutral-950 border border-stone-200 dark:border-white/5 text-stone-900 dark:text-white rounded focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-stone-500 dark:text-zinc-400 font-medium">Replace Product Image</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setImageFile(e.target.files[0])}
+                    className="w-full p-2 bg-white dark:bg-neutral-950 border border-stone-200 dark:border-white/5 text-stone-900 dark:text-white rounded focus:outline-none focus:border-amber-500 font-mono text-[11px]"
                   />
                 </div>
 

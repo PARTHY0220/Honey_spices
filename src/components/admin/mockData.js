@@ -1,6 +1,6 @@
-import turmericImg from '../../assets/turmeric_jar.png';
-import chiliImg from '../../assets/chili_jar.png';
-import garamMasalaImg from '../../assets/garam_masala_jar.png';
+import turmericImg from '../../assets/turmeric_jar.webp';
+import chiliImg from '../../assets/chili_jar.webp';
+import garamMasalaImg from '../../assets/garam_masala_jar.webp';
 
 export const initialProducts = [
   {

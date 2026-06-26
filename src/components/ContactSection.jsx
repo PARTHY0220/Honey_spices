@@ -1,19 +1,41 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
+import { supabase } from '../lib/supabase';
 
-const ContactSection = () => {
+const ContactSection = ({ addToast }) => {
   const [formState, setFormState] = useState({ name: '', email: '', message: '' });
   const [isSubmitted, setIsSubmitted] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formState.name || !formState.email || !formState.message) return;
     
-    // Simulate luxury submission
     setIsSubmitted(true);
-    setTimeout(() => {
+    try {
+      const { error } = await supabase
+        .from('contact_messages')
+        .insert({
+          name: formState.name,
+          email: formState.email,
+          message: formState.message,
+          phone: null
+        });
+
+      if (error) throw error;
+      
+      if (addToast) addToast("Inquiry successfully transmitted to L'Épice Sommelier!", 'success');
+      
+      setTimeout(() => {
+        setIsSubmitted(false);
+        setFormState({ name: '', email: '', message: '' });
+      }, 4000);
+    } catch (err) {
       setIsSubmitted(false);
-      setFormState({ name: '', email: '', message: '' });
-    }, 4000);
+      if (addToast) {
+        addToast(err.message || 'Failed to submit inquiry', 'error');
+      } else {
+        alert(err.message || 'Failed to submit inquiry');
+      }
+    }
   };
 
   const handleInputChange = (e) => {

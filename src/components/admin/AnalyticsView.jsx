@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { 
   ResponsiveContainer, 
@@ -16,18 +16,14 @@ import {
   Line
 } from 'recharts';
 import { 
-  BarChart3, 
-  PieChart as PieIcon, 
   TrendingUp, 
-  TrendingDown, 
   Users, 
   ShoppingBag,
-  Percent,
-  Sparkles
+  Percent
 } from 'lucide-react';
 import { salesHistory } from './mockData';
 
-const AnalyticsView = ({ orders, products, customers }) => {
+const AnalyticsView = ({ orders }) => {
 
   // Calculate metrics based on live state data
   const totalRevenue = useMemo(() => {

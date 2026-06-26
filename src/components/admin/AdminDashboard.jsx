@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, Suspense, lazy } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   LayoutDashboard, 
@@ -19,28 +19,31 @@ import {
   Moon, 
   X,
   AlertTriangle,
-  MessageCircle,
-  HelpCircle
+  MessageCircle
 } from 'lucide-react';
+import { supabase } from '../../lib/supabase';
 
 import { 
-  initialProducts, 
-  initialOrders, 
-  initialCustomers, 
-  initialPayments, 
-  initialMessages, 
   initialSettings 
 } from './mockData';
 
-// Import sub-views
-import DashboardView from './DashboardView';
-import OrdersView from './OrdersView';
-import ProductsView from './ProductsView';
-import CustomersView from './CustomersView';
-import PaymentsView from './PaymentsView';
-import MessagesView from './MessagesView';
-import AnalyticsView from './AnalyticsView';
-import SettingsView from './SettingsView';
+// Import sub-views using dynamic lazy imports
+const DashboardView = lazy(() => import('./DashboardView'));
+const OrdersView = lazy(() => import('./OrdersView'));
+const ProductsView = lazy(() => import('./ProductsView'));
+const CustomersView = lazy(() => import('./CustomersView'));
+const PaymentsView = lazy(() => import('./PaymentsView'));
+const MessagesView = lazy(() => import('./MessagesView'));
+const AnalyticsView = lazy(() => import('./AnalyticsView'));
+const SettingsView = lazy(() => import('./SettingsView'));
+
+const generateToastId = () => {
+  return Date.now() + Math.random().toString(36).substr(2, 5);
+};
+
+const generateUniqueFileName = (fileExt) => {
+  return `${Date.now()}_${Math.random().toString(36).substr(2, 5)}.${fileExt}`;
+};
 
 const AdminDashboard = ({ setView }) => {
   // Theme and UI layout state
@@ -54,18 +57,17 @@ const AdminDashboard = ({ setView }) => {
   const [profileOpen, setProfileOpen] = useState(false);
 
   // Core reactive data states
-  const [products, setProducts] = useState(initialProducts);
-  const [orders, setOrders] = useState(initialOrders);
-  const [customers, setCustomers] = useState(initialCustomers);
-  const [payments, setPayments] = useState(initialPayments);
-  const [messages, setMessages] = useState(initialMessages);
+  const [products, setProducts] = useState([]);
+  const [orders, setOrders] = useState([]);
+  const [customers, setCustomers] = useState([]);
+  const [messages, setMessages] = useState([]);
   const [settings, setSettings] = useState(initialSettings);
 
   // Animated Toast notifications
   const [toasts, setToasts] = useState([]);
 
   const addToast = (message, type = 'success') => {
-    const id = Date.now() + Math.random().toString(36).substr(2, 5);
+    const id = generateToastId();
     setToasts(prev => [...prev, { id, message, type }]);
     setTimeout(() => {
       removeToast(id);
@@ -75,6 +77,163 @@ const AdminDashboard = ({ setView }) => {
   const removeToast = (id) => {
     setToasts(prev => prev.filter(t => t.id !== id));
   };
+
+  const fetchAllProducts = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      setProducts((data || []).map(p => ({
+        id: p.id,
+        name: p.name,
+        scientificName: p.scientific_name || 'Artisanal Selection',
+        price: `₹${new Intl.NumberFormat('en-IN').format(p.price)}`,
+        priceNum: parseFloat(p.price),
+        rating: 5.0,
+        reviews: 0,
+        origin: p.tag || 'Curator Vault',
+        image: p.image_url || '',
+        category: p.category,
+        description: p.description,
+        tag: p.tag || 'Reserve Selection',
+        stock: p.stock,
+        status: p.stock === 0 ? 'Out of Stock' : p.stock <= 10 ? 'Low Stock' : 'In Stock'
+      })));
+    } catch (err) {
+      console.error('Error fetching admin products:', err);
+    }
+  };
+
+  const fetchAllOrders = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('orders')
+        .select(`
+          *,
+          profiles:user_id (*),
+          order_items (
+            *,
+            products (*)
+          )
+        `)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      
+      const mappedOrders = (data || []).map(o => {
+        const profile = o.profiles || {};
+        const items = (o.order_items || []).map(item => {
+          const p = item.products || {};
+          return {
+            id: item.product_id,
+            name: p.name || 'Unknown product',
+            quantity: item.quantity,
+            price: parseFloat(item.price)
+          };
+        });
+        
+        return {
+          id: o.id,
+          customerName: profile.full_name || 'Guest User',
+          email: profile.email || '',
+          phone: profile.phone || '',
+          address: o.shipping_address || '',
+          products: items,
+          amount: parseFloat(o.total_amount),
+          paymentStatus: o.payment_status,
+          orderStatus: o.order_status,
+          paymentMethod: o.payment_method,
+          date: o.created_at
+        };
+      });
+      setOrders(mappedOrders);
+    } catch (err) {
+      console.error('Error fetching admin orders:', err);
+    }
+  };
+
+  const fetchAllCustomers = async () => {
+    try {
+      const { data: profiles, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('role', 'customer');
+      if (profileError) throw profileError;
+
+      const { data: ordersData, error: ordersError } = await supabase
+        .from('orders')
+        .select('id, user_id, total_amount, order_status');
+      if (ordersError) throw ordersError;
+
+      const mappedCustomers = (profiles || []).map(p => {
+        const userOrders = (ordersData || []).filter(o => o.user_id === p.id && o.order_status !== 'Cancelled');
+        const totalSpending = userOrders.reduce((sum, o) => sum + parseFloat(o.total_amount), 0);
+        return {
+          id: p.id,
+          name: p.full_name,
+          email: p.email,
+          phone: p.phone || 'N/A',
+          totalOrders: userOrders.length,
+          totalSpending: totalSpending,
+          joinDate: p.created_at
+        };
+      });
+      setCustomers(mappedCustomers);
+    } catch (err) {
+      console.error('Error fetching admin customers:', err);
+    }
+  };
+
+  const fetchAllMessages = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('contact_messages')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      setMessages((data || []).map(m => ({
+        id: m.id,
+        name: m.name,
+        email: m.email,
+        phone: m.phone || 'N/A',
+        message: m.message,
+        date: m.created_at,
+        replied: m.replied,
+        replyText: m.reply_text || ''
+      })));
+    } catch (err) {
+      console.error('Error fetching admin messages:', err);
+    }
+  };
+
+  const refreshAllData = async () => {
+    await Promise.all([
+      fetchAllProducts(),
+      fetchAllOrders(),
+      fetchAllCustomers(),
+      fetchAllMessages()
+    ]);
+  };
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    refreshAllData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const payments = useMemo(() => {
+    return orders.map(o => ({
+      id: `PAY-${o.id.substring(0, 6).toUpperCase()}`,
+      orderId: o.id,
+      customerName: o.customerName,
+      amount: o.amount,
+      status: o.paymentStatus === 'Paid' ? 'Success' : o.paymentStatus === 'Pending' ? 'Pending' : 'Failed',
+      method: o.paymentMethod || 'UPI',
+      date: o.date
+    }));
+  }, [orders]);
 
   // Keyboard shortcut listener (Ctrl+K or Cmd+K to focus search or toggle sidebar)
   useEffect(() => {
@@ -130,7 +289,7 @@ const AdminDashboard = ({ setView }) => {
         id: `order-${o.id}`,
         type: 'success',
         title: 'Pending Spice Confirmation',
-        message: `Order ${o.id} requires validation (Amount: ₹${o.amount})`,
+        message: `Order ${o.id.substring(0, 8)} requires validation (Amount: ₹${o.amount})`,
         icon: ShoppingBag
       });
     });
@@ -139,71 +298,143 @@ const AdminDashboard = ({ setView }) => {
   }, [products, messages, orders]);
 
   // Reactive Handlers
-  const updateOrderStatus = (orderId, newStatus) => {
-    // 1. Update orders state
-    setOrders(prevOrders => 
-      prevOrders.map(o => o.id === orderId ? { ...o, orderStatus: newStatus } : o)
-    );
+  const updateOrderStatus = async (orderId, newStatus) => {
+    try {
+      let pStatus = 'Pending';
+      if (newStatus === 'Delivered') pStatus = 'Paid';
+      if (newStatus === 'Cancelled') pStatus = 'Failed';
 
-    // 2. Sync payment status if order is confirmed/delivered/cancelled
-    setPayments(prevPayments => 
-      prevPayments.map(p => {
-        if (p.orderId === orderId) {
-          if (newStatus === 'Delivered') {
-            return { ...p, status: 'Success' };
-          }
-          if (newStatus === 'Cancelled') {
-            return { ...p, status: 'Failed' };
-          }
-          if (newStatus === 'Confirmed' && p.status === 'Failed') {
-            return { ...p, status: 'Pending' };
-          }
-        }
-        return p;
-      })
-    );
-
-    // 3. Sync customer spending total if order status updates
-    const targetOrder = orders.find(o => o.id === orderId);
-    if (targetOrder) {
-      setCustomers(prevCust => 
-        prevCust.map(c => {
-          if (c.email === targetOrder.email) {
-            // Recalculate spending based on paid orders
-            const clientOrders = orders.map(o => o.id === orderId ? { ...o, orderStatus: newStatus } : o)
-              .filter(o => o.email === targetOrder.email && o.orderStatus !== 'Cancelled');
-            
-            const totalSpent = clientOrders.reduce((sum, o) => sum + o.amount, 0);
-            return {
-              ...c,
-              totalOrders: clientOrders.length,
-              totalSpending: totalSpent
-            };
-          }
-          return c;
+      const { error } = await supabase
+        .from('orders')
+        .update({ 
+          order_status: newStatus,
+          payment_status: pStatus
         })
-      );
+        .eq('id', orderId);
+
+      if (error) throw error;
+      
+      addToast(`Order status updated to ${newStatus}`, 'success');
+      await fetchAllOrders();
+      await fetchAllCustomers();
+    } catch (err) {
+      addToast(err.message || 'Error updating order status', 'error');
     }
   };
 
-  const addProduct = (newProd) => {
-    setProducts(prev => [newProd, ...prev]);
+  const addProduct = async (newProdFields, imageFile) => {
+    try {
+      let imageUrl = null;
+      if (imageFile) {
+        const fileExt = imageFile.name.split('.').pop();
+        const fileName = generateUniqueFileName(fileExt);
+        
+        const { error: uploadError } = await supabase.storage
+          .from('products')
+          .upload(fileName, imageFile, { cacheControl: '3600', upsert: false });
+          
+        if (uploadError) throw uploadError;
+        
+        const { data: { publicUrl } } = supabase.storage
+          .from('products')
+          .getPublicUrl(fileName);
+          
+        imageUrl = publicUrl;
+      }
+      
+      const { error } = await supabase
+        .from('products')
+        .insert({
+          name: newProdFields.name,
+          scientific_name: newProdFields.scientificName,
+          price: parseFloat(newProdFields.priceNum),
+          category: newProdFields.category,
+          description: newProdFields.description,
+          tag: newProdFields.tag,
+          stock: parseInt(newProdFields.stock),
+          image_url: imageUrl
+        });
+        
+      if (error) throw error;
+      
+      addToast(`${newProdFields.name} successfully added to inventory`, 'success');
+      await fetchAllProducts();
+    } catch (err) {
+      addToast(err.message || 'Error adding product', 'error');
+    }
   };
 
-  const editProduct = (prodId, updatedFields) => {
-    setProducts(prev => 
-      prev.map(p => p.id === prodId ? { ...p, ...updatedFields } : p)
-    );
+  const editProduct = async (prodId, updatedFields, imageFile) => {
+    try {
+      let imageUrl = updatedFields.image; // default to old image
+      if (imageFile) {
+        const fileExt = imageFile.name.split('.').pop();
+        const fileName = generateUniqueFileName(fileExt);
+        
+        const { error: uploadError } = await supabase.storage
+          .from('products')
+          .upload(fileName, imageFile, { cacheControl: '3600', upsert: false });
+          
+        if (uploadError) throw uploadError;
+        
+        const { data: { publicUrl } } = supabase.storage
+          .from('products')
+          .getPublicUrl(fileName);
+          
+        imageUrl = publicUrl;
+      }
+      
+      const { error } = await supabase
+        .from('products')
+        .update({
+          name: updatedFields.name,
+          scientific_name: updatedFields.scientificName,
+          price: parseFloat(updatedFields.priceNum),
+          category: updatedFields.category,
+          description: updatedFields.description,
+          tag: updatedFields.tag,
+          stock: parseInt(updatedFields.stock),
+          image_url: imageUrl
+        })
+        .eq('id', prodId);
+        
+      if (error) throw error;
+      
+      addToast(`${updatedFields.name} updated successfully`, 'success');
+      await fetchAllProducts();
+    } catch (err) {
+      addToast(err.message || 'Error updating product', 'error');
+    }
   };
 
-  const deleteProduct = (prodId) => {
-    setProducts(prev => prev.filter(p => p.id !== prodId));
+  const deleteProduct = async (prodId) => {
+    try {
+      const { error } = await supabase
+        .from('products')
+        .delete()
+        .eq('id', prodId);
+      if (error) throw error;
+      
+      addToast('Spice reserve removed from catalog', 'success');
+      await fetchAllProducts();
+    } catch (err) {
+      addToast(err.message || 'Error deleting product', 'error');
+    }
   };
 
-  const replyToMessage = (msgId, text) => {
-    setMessages(prev => 
-      prev.map(m => m.id === msgId ? { ...m, replied: true, replyText: text } : m)
-    );
+  const replyToMessage = async (msgId, text) => {
+    try {
+      const { error } = await supabase
+        .from('contact_messages')
+        .update({ replied: true, reply_text: text })
+        .eq('id', msgId);
+      if (error) throw error;
+      
+      addToast('Reply sent to concierge logs', 'success');
+      await fetchAllMessages();
+    } catch (err) {
+      addToast(err.message || 'Error saving reply', 'error');
+    }
   };
 
   // Sidebar Links
@@ -217,6 +448,7 @@ const AdminDashboard = ({ setView }) => {
     { id: 'analytics', label: 'Analytics', icon: BarChart3 },
     { id: 'settings', label: 'Settings', icon: Settings }
   ];
+
 
   // Render Sub-Views
   const renderContent = () => {
@@ -652,7 +884,13 @@ const AdminDashboard = ({ setView }) => {
                 exit={{ opacity: 0, y: -15 }}
                 transition={{ duration: 0.25 }}
               >
-                {renderContent()}
+                <Suspense fallback={
+                  <div className="min-h-[400px] flex items-center justify-center">
+                    <div className="w-8 h-8 rounded-full border border-amber-500/10 border-t-amber-500 animate-spin" />
+                  </div>
+                }>
+                  {renderContent()}
+                </Suspense>
               </motion.div>
             </AnimatePresence>
           </main>

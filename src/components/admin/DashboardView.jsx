@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { 
   ResponsiveContainer, 
@@ -8,7 +8,6 @@ import {
   YAxis, 
   CartesianGrid, 
   Tooltip, 
-  Legend, 
   PieChart, 
   Pie, 
   Cell 
@@ -20,12 +19,11 @@ import {
   Users, 
   Clock, 
   TrendingUp, 
-  ArrowUpRight, 
   Star 
 } from 'lucide-react';
 import { weeklySales } from './mockData';
 
-const DashboardView = ({ orders, products, customers, setViewTab, updateOrderStatus }) => {
+const DashboardView = ({ orders, products, customers, setViewTab }) => {
   
   // Calculate Dashboard Metrics reactively from parent state
   const totalRevenue = useMemo(() => {
@@ -295,7 +293,7 @@ const DashboardView = ({ orders, products, customers, setViewTab, updateOrderSta
           </div>
 
           <div className="grid grid-cols-2 gap-2 mt-4 text-[10px] font-mono">
-            {pieData.map((d, index) => (
+            {pieData.map((d) => (
               <div key={d.name} className="flex items-center gap-1.5">
                 <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: d.color }}></span>
                 <span className="text-stone-600 dark:text-zinc-400 font-light">{d.name} ({d.value})</span>

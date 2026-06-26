@@ -1,7 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import logoImg from '../assets/logo.jpg';
+import { useState, useEffect } from 'react';
+import logoImg from '../assets/logo.webp';
+import { useAuth } from '../context/AuthContext.jsx';
+
+const NAV_LINKS = [
+  { name: 'Home', view: 'home' },
+  { name: 'Products', view: 'products' },
+  { name: 'About Us', view: 'about' },
+  { name: 'Contact', view: 'contact' },
+];
 
 const Navbar = ({ setView, currentView, cartCount = 0 }) => {
+  const { user, profile, logout } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
 
@@ -14,18 +23,11 @@ const Navbar = ({ setView, currentView, cartCount = 0 }) => {
       }
     };
 
-    window.addEventListener('scroll', handleScroll);
+    window.addEventListener('scroll', handleScroll, { passive: true });
     return () => {
       window.removeEventListener('scroll', handleScroll);
     };
   }, []);
-
-  const navLinks = [
-    { name: 'Home', view: 'home' },
-    { name: 'Products', view: 'products' },
-    { name: 'About Us', view: 'about' },
-    { name: 'Contact', view: 'contact' },
-  ];
 
   const handleNavLinkClick = (e, targetView) => {
     e.preventDefault();
@@ -68,7 +70,7 @@ const Navbar = ({ setView, currentView, cartCount = 0 }) => {
 
         {/* Desktop Navigation Links */}
         <div className="hidden lg:flex items-center space-x-8">
-          {navLinks.map((link) => (
+          {NAV_LINKS.map((link) => (
             <a
               key={link.name}
               href={`#${link.view}`}
@@ -99,17 +101,51 @@ const Navbar = ({ setView, currentView, cartCount = 0 }) => {
           </button>
           
           {/* User Profile Button */}
-          <button
-            onClick={() => { setView('login'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-            className={`hover:text-amber-400 transition-colors duration-300 cursor-pointer focus:outline-none ${
-              currentView === 'login' ? 'text-amber-400' : ''
-            }`}
-            aria-label="Account"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.75" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-            </svg>
-          </button>
+          {user ? (
+            <div className="relative group flex items-center">
+              <button
+                className="w-7 h-7 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-500 hover:bg-amber-500 hover:text-black flex items-center justify-center text-[10px] font-bold transition-all duration-300 cursor-pointer focus:outline-none uppercase font-mono"
+                aria-label="User Account Options"
+              >
+                {profile?.full_name ? profile.full_name.split(' ').map(n => n[0]).join('').substring(0, 2) : 'U'}
+              </button>
+              {/* Dropdown Menu on hover */}
+              <div className="absolute right-0 top-full mt-2 w-48 bg-neutral-950/95 border border-white/10 shadow-2xl py-2 rounded-none opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50 text-xs">
+                <div className="px-4 py-2 border-b border-white/5 text-[9px] uppercase font-mono tracking-widest text-zinc-500">
+                  Welcome, {profile?.full_name || 'Terroir User'}
+                </div>
+                {profile?.role === 'admin' && (
+                  <button
+                    onClick={() => { setView('admin'); }}
+                    className="w-full text-left px-4 py-2 text-zinc-300 hover:text-amber-400 hover:bg-white/5 transition-all focus:outline-none cursor-pointer text-xs"
+                  >
+                    Curator Workspace
+                  </button>
+                )}
+                <button
+                  onClick={async () => {
+                    await logout();
+                    setView('home');
+                  }}
+                  className="w-full text-left px-4 py-2 text-red-400 hover:text-red-300 hover:bg-white/5 transition-all focus:outline-none cursor-pointer text-xs"
+                >
+                  Logout Session
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={() => { setView('login'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+              className={`hover:text-amber-400 transition-colors duration-300 cursor-pointer focus:outline-none ${
+                currentView === 'login' ? 'text-amber-400' : ''
+              }`}
+              aria-label="Account"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.75" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+            </button>
+          )}
 
           {/* Cart Icon with Item Count */}
           <button
@@ -177,7 +213,7 @@ const Navbar = ({ setView, currentView, cartCount = 0 }) => {
         }`}
       >
         <div className="flex flex-col space-y-6 px-8 items-center text-center">
-          {navLinks.map((link) => (
+          {NAV_LINKS.map((link) => (
             <a
               key={link.name}
               href={`#${link.view}`}
@@ -191,30 +227,68 @@ const Navbar = ({ setView, currentView, cartCount = 0 }) => {
           ))}
           
           {/* Mobile Utility Controls (Search & User shortcuts inside mobile dropdown) */}
-          <div className="flex justify-center items-center space-x-12 w-full pt-4 border-t border-white/10">
-            {/* Search */}
-            <button
-              onClick={() => { setIsOpen(false); setView('products'); }}
-              className="text-zinc-300 hover:text-amber-400 flex items-center space-x-2 transition-colors duration-300 cursor-pointer focus:outline-none"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.75" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-              <span className="text-xs uppercase tracking-[0.1em] font-semibold">Search</span>
-            </button>
-            
-            {/* Account */}
-            <button
-              onClick={() => { setIsOpen(false); setView('login'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-              className={`hover:text-amber-400 flex items-center space-x-2 transition-colors duration-300 cursor-pointer focus:outline-none ${
-                currentView === 'login' ? 'text-amber-400' : 'text-zinc-300'
-              }`}
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.75" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-              <span className="text-xs uppercase tracking-[0.1em] font-semibold">Profile</span>
-            </button>
+          <div className="flex flex-col space-y-4 w-full pt-4 border-t border-white/10 items-center">
+            {/* Search and User Profile trigger row */}
+            <div className="flex justify-center items-center space-x-12 w-full">
+              {/* Search */}
+              <button
+                onClick={() => { setIsOpen(false); setView('products'); }}
+                className="text-zinc-300 hover:text-amber-400 flex items-center space-x-2 transition-colors duration-300 cursor-pointer focus:outline-none"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.75" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <span className="text-xs uppercase tracking-[0.1em] font-semibold">Search</span>
+              </button>
+              
+              {/* Account/Profile */}
+              {user ? (
+                <div className="flex items-center space-x-2 text-zinc-300">
+                  <div className="w-7 h-7 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-500 flex items-center justify-center text-[10px] font-bold uppercase font-mono">
+                    {profile?.full_name ? profile.full_name.split(' ').map(n => n[0]).join('').substring(0, 2) : 'U'}
+                  </div>
+                  <span className="text-xs uppercase tracking-[0.1em] font-semibold font-mono text-zinc-400">
+                    {profile?.full_name ? profile.full_name.split(' ')[0] : 'User'}
+                  </span>
+                </div>
+              ) : (
+                <button
+                  onClick={() => { setIsOpen(false); setView('login'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                  className={`hover:text-amber-400 flex items-center space-x-2 transition-colors duration-300 cursor-pointer focus:outline-none ${
+                    currentView === 'login' ? 'text-amber-400' : 'text-zinc-300'
+                  }`}
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.75" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                  <span className="text-xs uppercase tracking-[0.1em] font-semibold">Profile</span>
+                </button>
+              )}
+            </div>
+
+            {/* Session Action Buttons when Logged In */}
+            {user && (
+              <div className="flex flex-col space-y-3 w-full max-w-[240px] pt-2">
+                {profile?.role === 'admin' && (
+                  <button
+                    onClick={() => { setIsOpen(false); setView('admin'); }}
+                    className="w-full py-2 bg-amber-500/10 border border-amber-500/30 text-amber-500 hover:bg-amber-500 hover:text-black transition-all duration-300 focus:outline-none cursor-pointer text-xs uppercase tracking-[0.1em] font-semibold"
+                  >
+                    Curator Workspace
+                  </button>
+                )}
+                <button
+                  onClick={async () => {
+                    setIsOpen(false);
+                    await logout();
+                    setView('home');
+                  }}
+                  className="w-full py-2 bg-red-950/20 border border-red-500/20 text-red-400 hover:bg-red-500 hover:text-white transition-all duration-300 focus:outline-none cursor-pointer text-xs uppercase tracking-[0.1em] font-semibold"
+                >
+                  Logout Session
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>

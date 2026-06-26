@@ -1,81 +1,72 @@
-import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
 
+// 1. Floating Turmeric Powder (bottom-left to top-right)
+const TURMERIC_PARTICLES = Array.from({ length: 25 }).map((_, i) => {
+  const startX = Math.random() * 40 - 20; // -20vw to 20vw (bottom-left area)
+  const startY = Math.random() * 20 + 85; // 85vh to 105vh (below viewport bottom)
+  const targetX = Math.random() * 45 + 65; // 65vw to 110vw (top-right area)
+  const targetY = Math.random() * 40 - 15; // -15vh to 25vh (above viewport top)
+  
+  const size = Math.random() * 4 + 2; // 2px to 6px
+  const duration = Math.random() * 9 + 12; // 12s to 21s
+  const delay = Math.random() * 12;
+  
+  return { id: i, startX, startY, targetX, targetY, size, duration, delay };
+});
+
+// 2. Red Chili Powder Dust (top-right to center swirling)
+const CHILI_PARTICLES = Array.from({ length: 25 }).map((_, i) => {
+  const startX = Math.random() * 30 + 80; // 80vw to 110vw (top-right area)
+  const startY = Math.random() * 40 - 15; // -15vh to 25vh (above/right boundary)
+  const targetX = Math.random() * 30 + 30; // 30vw to 60vw (center area)
+  const targetY = Math.random() * 30 + 35; // 35vh to 65vh (center area)
+  
+  // Calculate intermediate swirling curve path offsets
+  const midX1 = startX - (startX - targetX) * 0.35 - (Math.random() * 12 + 6);
+  const midY1 = startY + (targetY - startY) * 0.45 + (Math.random() * 15 - 5);
+  
+  const midX2 = startX - (startX - targetX) * 0.72 + (Math.random() * 14 - 7);
+  const midY2 = startY + (targetY - startY) * 0.8 + (Math.random() * 12 + 6);
+
+  const size = Math.random() * 4.5 + 2; // 2px to 6.5px
+  const duration = Math.random() * 10 + 13; // 13s to 23s
+  const delay = Math.random() * 10;
+
+  return { id: i, startX, startY, midX1, midY1, midX2, midY2, targetX, targetY, size, duration, delay };
+});
+
+// 3. Cinnamon Powder Particles (center expansion with downward drift)
+const CINNAMON_PARTICLES = Array.from({ length: 25 }).map((_, i) => {
+  const startX = Math.random() * 20 + 40; // 40vw to 60vw (center area)
+  const startY = Math.random() * 20 + 30; // 30vh to 50vh (center area)
+  
+  // Angular explosion outwards and downwards
+  const angle = (Math.random() * Math.PI) + 0.15; // biased downwards (0.15 to PI)
+  const dist = Math.random() * 45 + 30;
+  
+  const targetX = startX + Math.cos(angle) * dist;
+  const targetY = startY + Math.sin(angle) * dist + 20; // downward drift offset
+
+  const size = Math.random() * 3 + 1.5; // 1.5px to 4.5px
+  const blur = Math.random() > 0.45; // Depth of field simulation
+  const duration = Math.random() * 8 + 9; // 9s to 17s
+  const delay = Math.random() * 8;
+
+  return { id: i, startX, startY, targetX, targetY, size, blur, duration, delay };
+});
+
+// 4. Slow-moving Mist / Smoke (bottom to top waves)
+const SMOKE_CLOUDS = Array.from({ length: 5 }).map((_, i) => {
+  const startX = Math.random() * 70 + 15; // 15vw to 85vw
+  const scale = Math.random() * 0.7 + 0.9; // 0.9 to 1.6
+  const duration = Math.random() * 12 + 22; // 22s to 34s
+  const delay = Math.random() * 15;
+  const opacity = Math.random() * 0.08 + 0.12; // 12% to 20% opacity as requested
+  
+  return { id: i, startX, scale, duration, delay, opacity };
+});
+
 const Hero = ({ setView }) => {
-  // 1. Floating Turmeric Powder (bottom-left to top-right)
-  const turmericParticles = useMemo(() => {
-    return Array.from({ length: 25 }).map((_, i) => {
-      const startX = Math.random() * 40 - 20; // -20vw to 20vw (bottom-left area)
-      const startY = Math.random() * 20 + 85; // 85vh to 105vh (below viewport bottom)
-      const targetX = Math.random() * 45 + 65; // 65vw to 110vw (top-right area)
-      const targetY = Math.random() * 40 - 15; // -15vh to 25vh (above viewport top)
-      
-      const size = Math.random() * 4 + 2; // 2px to 6px
-      const duration = Math.random() * 9 + 12; // 12s to 21s
-      const delay = Math.random() * 12;
-      
-      return { id: i, startX, startY, targetX, targetY, size, duration, delay };
-    });
-  }, []);
-
-  // 2. Red Chili Powder Dust (top-right to center swirling)
-  const chiliParticles = useMemo(() => {
-    return Array.from({ length: 25 }).map((_, i) => {
-      const startX = Math.random() * 30 + 80; // 80vw to 110vw (top-right area)
-      const startY = Math.random() * 40 - 15; // -15vh to 25vh (above/right boundary)
-      const targetX = Math.random() * 30 + 30; // 30vw to 60vw (center area)
-      const targetY = Math.random() * 30 + 35; // 35vh to 65vh (center area)
-      
-      // Calculate intermediate swirling curve path offsets
-      const midX1 = startX - (startX - targetX) * 0.35 - (Math.random() * 12 + 6);
-      const midY1 = startY + (targetY - startY) * 0.45 + (Math.random() * 15 - 5);
-      
-      const midX2 = startX - (startX - targetX) * 0.72 + (Math.random() * 14 - 7);
-      const midY2 = startY + (targetY - startY) * 0.8 + (Math.random() * 12 + 6);
-
-      const size = Math.random() * 4.5 + 2; // 2px to 6.5px
-      const duration = Math.random() * 10 + 13; // 13s to 23s
-      const delay = Math.random() * 10;
-
-      return { id: i, startX, startY, midX1, midY1, midX2, midY2, targetX, targetY, size, duration, delay };
-    });
-  }, []);
-
-  // 3. Cinnamon Powder Particles (center expansion with downward drift)
-  const cinnamonParticles = useMemo(() => {
-    return Array.from({ length: 25 }).map((_, i) => {
-      const startX = Math.random() * 20 + 40; // 40vw to 60vw (center area)
-      const startY = Math.random() * 20 + 30; // 30vh to 50vh (center area)
-      
-      // Angular explosion outwards and downwards
-      const angle = (Math.random() * Math.PI) + 0.15; // biased downwards (0.15 to PI)
-      const dist = Math.random() * 45 + 30;
-      
-      const targetX = startX + Math.cos(angle) * dist;
-      const targetY = startY + Math.sin(angle) * dist + 20; // downward drift offset
-
-      const size = Math.random() * 3 + 1.5; // 1.5px to 4.5px
-      const blur = Math.random() > 0.45; // Depth of field simulation
-      const duration = Math.random() * 8 + 9; // 9s to 17s
-      const delay = Math.random() * 8;
-
-      return { id: i, startX, startY, targetX, targetY, size, blur, duration, delay };
-    });
-  }, []);
-
-  // 4. Slow-moving Mist / Smoke (bottom to top waves)
-  const smokeClouds = useMemo(() => {
-    return Array.from({ length: 5 }).map((_, i) => {
-      const startX = Math.random() * 70 + 15; // 15vw to 85vw
-      const scale = Math.random() * 0.7 + 0.9; // 0.9 to 1.6
-      const duration = Math.random() * 12 + 22; // 22s to 34s
-      const delay = Math.random() * 15;
-      const opacity = Math.random() * 0.08 + 0.12; // 12% to 20% opacity as requested
-      
-      return { id: i, startX, scale, duration, delay, opacity };
-    });
-  }, []);
-
   return (
     <section className="relative min-h-screen w-full overflow-hidden bg-[#0B0B0B] flex flex-col justify-between select-none">
       
@@ -137,7 +128,7 @@ const Hero = ({ setView }) => {
         />
 
         {/* 1. Floating Turmeric Particles */}
-        {turmericParticles.map((p) => (
+        {TURMERIC_PARTICLES.map((p) => (
           <motion.div
             key={`turmeric-${p.id}`}
             initial={{
@@ -164,12 +155,14 @@ const Hero = ({ setView }) => {
               height: `${p.size}px`,
               backgroundColor: '#F5C518',
               boxShadow: '0 0 6px rgba(245, 197, 24, 0.6)',
+              willChange: 'transform',
+              transform: 'translate3d(0,0,0)',
             }}
           />
         ))}
 
         {/* 2. Swirling Chili Particles */}
-        {chiliParticles.map((p) => (
+        {CHILI_PARTICLES.map((p) => (
           <motion.div
             key={`chili-${p.id}`}
             initial={{
@@ -195,12 +188,14 @@ const Hero = ({ setView }) => {
               height: `${p.size}px`,
               backgroundColor: '#FF3B30',
               boxShadow: '0 0 5px rgba(255, 59, 48, 0.5)',
+              willChange: 'transform',
+              transform: 'translate3d(0,0,0)',
             }}
           />
         ))}
 
         {/* 3. Outward Cinnamon Particles (Depth of Field blur simulated) */}
-        {cinnamonParticles.map((p) => (
+        {CINNAMON_PARTICLES.map((p) => (
           <motion.div
             key={`cinnamon-${p.id}`}
             initial={{
@@ -226,12 +221,14 @@ const Hero = ({ setView }) => {
               height: `${p.size}px`,
               backgroundColor: '#C68B59',
               boxShadow: '0 0 4px rgba(198, 139, 89, 0.4)',
+              willChange: 'transform',
+              transform: 'translate3d(0,0,0)',
             }}
           />
         ))}
 
         {/* 4. Slow-Moving Smoke Clouds (Radial Mist) */}
-        {smokeClouds.map((s) => (
+        {SMOKE_CLOUDS.map((s) => (
           <motion.div
             key={`smoke-${s.id}`}
             initial={{
@@ -257,6 +254,8 @@ const Hero = ({ setView }) => {
               width: '35vw',
               height: '35vw',
               background: 'radial-gradient(circle, rgba(213, 160, 112, 0.2) 0%, rgba(213, 160, 112, 0.05) 50%, rgba(253, 251, 247, 0) 70%)',
+              willChange: 'transform, opacity',
+              transform: 'translate3d(0,0,0)',
             }}
           />
         ))}

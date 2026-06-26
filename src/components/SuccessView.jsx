@@ -1,16 +1,18 @@
-import React, { useMemo } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
+
+const generateOrderId = () => {
+  const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  let result = '#HS-';
+  for (let i = 0; i < 6; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+};
 
 const SuccessView = ({ setView }) => {
   // Generate a randomized receipt ID
-  const orderId = useMemo(() => {
-    const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    let result = '#HS-';
-    for (let i = 0; i < 6; i++) {
-      result += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return result;
-  }, []);
+  const [orderId] = useState(generateOrderId);
 
   return (
     <div className="bg-transparent text-zinc-100 min-h-screen pt-32 pb-24 px-6 relative overflow-hidden flex items-center justify-center">
