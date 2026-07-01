@@ -157,13 +157,12 @@ const AdminDashboard = ({ setView }) => {
         });
       }
 
-      // Read local orders from localStorage and prepend them
-      const localOrders = JSON.parse(localStorage.getItem('local_orders') || '[]');
-      setOrders([...localOrders, ...mappedOrders]);
+      // We only append local orders if we want mock data, but real admins don't need it.
+      // We will only use local orders if Supabase has no orders at all or fails.
+      setOrders(mappedOrders);
     } catch (err) {
       console.error('Error fetching admin orders:', err);
-      const localOrders = JSON.parse(localStorage.getItem('local_orders') || '[]');
-      setOrders(localOrders);
+      setOrders([]);
     }
   };
 
@@ -320,24 +319,11 @@ const AdminDashboard = ({ setView }) => {
   // Reactive Handlers
   const updateOrderStatus = async (orderId, newStatus) => {
     try {
-      let pStatus = 'Pending';
-      if (newStatus === 'Delivered') pStatus = 'Paid';
+      const existingOrder = orders.find(o => o.id === orderId);
+      let pStatus = existingOrder ? existingOrder.paymentStatus : 'Pending';
+      if (newStatus === 'Delivered' && pStatus === 'Pending') pStatus = 'Paid';
       if (newStatus === 'Cancelled') pStatus = 'Failed';
 
-      if (typeof orderId === 'string' && orderId.startsWith('ORD-')) {
-        // Handle local mock order update
-        const localOrders = JSON.parse(localStorage.getItem('local_orders') || '[]');
-        const updatedLocal = localOrders.map(o => {
-          if (o.id === orderId) {
-            return { ...o, orderStatus: newStatus, paymentStatus: pStatus };
-          }
-          return o;
-        });
-        localStorage.setItem('local_orders', JSON.stringify(updatedLocal));
-        addToast(`Local order status updated to ${newStatus}`, 'success');
-        await fetchAllOrders();
-        return;
-      }
 
       const { error } = await supabase
         .from('orders')

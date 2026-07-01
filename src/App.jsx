@@ -18,6 +18,7 @@ const CartView = React.lazy(() => import('./components/CartView.jsx'));
 const CheckoutView = React.lazy(() => import('./components/CheckoutView.jsx'));
 const SuccessView = React.lazy(() => import('./components/SuccessView.jsx'));
 const LoginView = React.lazy(() => import('./components/LoginView.jsx'));
+const UserProfile = React.lazy(() => import('./components/UserProfile.jsx'));
 const AdminDashboard = React.lazy(() => import('./components/admin/AdminDashboard.jsx'));
 
 // Global Smoke Clouds generated once
@@ -670,6 +671,18 @@ function App() {
                   <LoginView setView={setView} addToast={addToast} />
                 </motion.div>
               )}
+
+              {view === 'profile' && (
+                <motion.div
+                  key="profile"
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -15 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <UserProfile setView={setView} addToast={addToast} />
+                </motion.div>
+              )}
             </AnimatePresence>
           </Suspense>
 
@@ -722,7 +735,7 @@ function App() {
         </div>
 
         {/* Render Footer globally except during direct funnel actions */}
-        {(view === 'home' || view === 'products' || view === 'about' || view === 'contact' || view === 'cart' || view === 'login') && (
+        {(view === 'home' || view === 'products' || view === 'about' || view === 'contact' || view === 'cart' || view === 'login' || view === 'profile') && (
           <Footer setView={setView} />
         )}
       </div>

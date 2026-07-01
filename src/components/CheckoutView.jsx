@@ -10,7 +10,7 @@ const CheckoutView = ({ cart, onCheckoutSuccess, setView, addToast }) => {
   const tax = subtotal * 0.05;
   const total = subtotal + shipping + tax;
 
-  const [paymentMethod, setPaymentMethod] = useState('upi'); // 'upi', 'credit', 'debit'
+  const [paymentMethod, setPaymentMethod] = useState('upi'); // 'upi', 'credit', 'debit', 'cod'
   const [billing, setBilling] = useState({ name: '', email: '', address: '', city: '', zip: '', state: 'Kerala' });
   const [payment, setPayment] = useState({ cardName: '', cardNumber: '', cardExpiry: '', cardCvv: '' });
   const [upiId, setUpiId] = useState('');
@@ -71,7 +71,7 @@ const CheckoutView = ({ cart, onCheckoutSuccess, setView, addToast }) => {
           user_id: user.id,
           total_amount: total,
           payment_method: paymentMethod.toUpperCase(),
-          payment_status: 'Paid',
+          payment_status: paymentMethod === 'cod' ? 'Pending' : 'Paid',
           order_status: 'Pending',
           shipping_address: `${billing.name}\n${billing.address}\n${billing.city}, ${billing.state} - ${billing.zip}`
         })
@@ -101,34 +101,6 @@ const CheckoutView = ({ cart, onCheckoutSuccess, setView, addToast }) => {
         .eq('user_id', user.id);
 
       if (cartError) throw cartError;
-
-      // Save order locally to localStorage so that the mock admin dashboard can load it
-      try {
-        const newLocalOrder = {
-          id: `ORD-${Math.floor(1000 + Math.random() * 9000)}`,
-          customerName: billing.name,
-          email: billing.email || user.email || 'customer@example.com',
-          phone: user.user_metadata?.phone || '+91 99999 99999',
-          address: `${billing.name}\n${billing.address}\n${billing.city}, ${billing.state} - ${billing.zip}`,
-          products: cart.map(item => ({
-            id: item.id,
-            name: item.name,
-            quantity: item.quantity,
-            price: item.priceNum
-          })),
-          amount: total,
-          paymentStatus: 'Paid',
-          orderStatus: 'Pending',
-          paymentMethod: paymentMethod.toUpperCase(),
-          date: new Date().toISOString()
-        };
-
-        const existingLocalOrders = JSON.parse(localStorage.getItem('local_orders') || '[]');
-        existingLocalOrders.unshift(newLocalOrder);
-        localStorage.setItem('local_orders', JSON.stringify(existingLocalOrders));
-      } catch (localErr) {
-        console.warn('Error saving order locally to localStorage:', localErr);
-      }
 
       return true;
     } catch (err) {
@@ -181,7 +153,19 @@ const CheckoutView = ({ cart, onCheckoutSuccess, setView, addToast }) => {
     e.preventDefault();
     if (!billing.name || !billing.email || !billing.address || !billing.city || !billing.zip) return;
 
-    if (paymentMethod === 'upi') {
+    if (paymentMethod === 'cod') {
+      setIsProcessing(true);
+      setProcessStep('Confirming Cash on Delivery order...');
+      
+      setTimeout(async () => {
+        const success = await saveOrderToSupabase();
+        setIsProcessing(false);
+        if (success) {
+          if (addToast) addToast('Order placed successfully!', 'success');
+          onCheckoutSuccess();
+        }
+      }, 1000);
+    } else if (paymentMethod === 'upi') {
       if (!upiId) return;
       if (!validateUPI(upiId)) {
         if (addToast) addToast('Invalid UPI ID format (e.g. user@bank)', 'error');
@@ -383,11 +367,41 @@ const CheckoutView = ({ cart, onCheckoutSuccess, setView, addToast }) => {
               >
                 Debit Card
               </button>
+              <button
+                type="button"
+                onClick={() => setPaymentMethod('cod')}
+                className={`flex-1 pb-3 text-xs uppercase tracking-widest font-semibold text-center border-b-2 cursor-pointer transition-colors focus:outline-none ${
+                  paymentMethod === 'cod'
+                    ? 'border-amber-500 text-amber-400'
+                    : 'border-transparent text-zinc-400 hover:text-white'
+                }`}
+              >
+                COD
+              </button>
             </div>
 
             {/* Dynamic Rendering of Payment Methods */}
             <AnimatePresence mode="wait">
-              {paymentMethod === 'upi' ? (
+              {paymentMethod === 'cod' ? (
+                <motion.div
+                  key="cod"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.2 }}
+                  className="space-y-6"
+                >
+                  <div className="flex flex-col items-center justify-center p-8 bg-neutral-900/60 border border-white/5 text-center space-y-4">
+                    <svg className="w-12 h-12 text-amber-500/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                    <div>
+                      <h3 className="text-white font-semibold tracking-wide">Cash on Delivery</h3>
+                      <p className="text-zinc-400 text-sm mt-2">Pay securely with cash when your order is delivered to your doorstep.</p>
+                    </div>
+                  </div>
+                </motion.div>
+              ) : paymentMethod === 'upi' ? (
                 <motion.div
                   key="upi"
                   initial={{ opacity: 0, y: 10 }}
@@ -535,10 +549,12 @@ const CheckoutView = ({ cart, onCheckoutSuccess, setView, addToast }) => {
               disabled={isProcessing}
               className={`w-full py-4 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white font-semibold text-xs tracking-[0.2em] uppercase transition-all duration-300 shadow-[0_4px_15px_rgba(217,119,6,0.15)] flex items-center justify-center gap-2 focus:outline-none ${isProcessing ? 'opacity-50 cursor-not-allowed pointer-events-none' : 'cursor-pointer'}`}
             >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-              </svg>
-              <span>Pay ₹{total.toLocaleString('en-IN')} Securely</span>
+              {paymentMethod !== 'cod' && (
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+              )}
+              <span>{paymentMethod === 'cod' ? 'Place Order (COD)' : `Pay ₹${total.toLocaleString('en-IN')} Securely`}</span>
             </button>
 
             <button

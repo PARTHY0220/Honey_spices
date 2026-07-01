@@ -36,6 +36,11 @@ const LoginView = ({ setView, addToast }) => {
         await login(formData.email, formData.password);
         if (addToast) addToast('Welcome back to Honey Spices!', 'success');
       } else if (mode === 'signup') {
+        if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]+$/.test(formData.password)) {
+          setIsSubmitting(false);
+          if (addToast) addToast('Password must contain at least one uppercase, lowercase, and digit (no special chars)', 'error');
+          return;
+        }
         setSubmitMessage('Creating secure user profile...');
         await register(formData.email, formData.password, formData.name, '');
         if (addToast) addToast('Registration successful! Welcome!', 'success');
@@ -56,26 +61,7 @@ const LoginView = ({ setView, addToast }) => {
     }
   };
 
-  const handleBypass = async () => {
-    setIsSubmitting(true);
-    setSubmitMessage('Loading curator workspace dashboard panel...');
-    try {
-      // Try login first
-      await login('admin@honeyspices.com', 'Admin@123');
-      if (addToast) addToast('Curator workspace authenticated', 'success');
-    } catch (err) {
-      console.log('Bypass account not found, attempting auto-registration:', err.message);
-      // If login fails (user does not exist), register them and login
-      try {
-        await register('admin@honeyspices.com', 'Admin@123', 'Devaiah Thimmaiah', '+91 99999 99999');
-        await login('admin@honeyspices.com', 'Admin@123');
-        if (addToast) addToast('Curator account generated and workspace authenticated', 'success');
-      } catch (signupErr) {
-        setIsSubmitting(false);
-        if (addToast) addToast('Bypass failed: ' + signupErr.message, 'error');
-      }
-    }
-  };
+
 
   return (
     <div className="bg-transparent text-zinc-100 min-h-screen pt-32 pb-24 px-6 flex items-center justify-center relative overflow-hidden">
@@ -155,14 +141,7 @@ const LoginView = ({ setView, addToast }) => {
                   </span>
                 </button>
 
-                {/* Demo Admin bypass */}
-                <button
-                  type="button"
-                  onClick={handleBypass}
-                  className="w-full text-center text-[10px] text-amber-500/60 hover:text-amber-400 transition-colors tracking-widest font-mono uppercase cursor-pointer py-1.5 border border-dashed border-amber-500/25 block mt-2"
-                >
-                  Bypass: Demo Admin Login
-                </button>
+
               </form>
             </motion.div>
           )}
@@ -220,6 +199,8 @@ const LoginView = ({ setView, addToast }) => {
                     onChange={handleInputChange}
                     placeholder=" "
                     required
+                    pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]+$"
+                    title="Password must contain at least one uppercase letter, one lowercase letter, and one number (no special characters)"
                     className="peer w-full bg-transparent border-b border-white/10 focus:border-amber-500 py-3 text-white text-sm outline-none transition-colors duration-300"
                   />
                   <label htmlFor="password" className="absolute left-0 top-3 text-zinc-500 text-xs sm:text-sm tracking-wide transition-all duration-300 pointer-events-none peer-placeholder-shown:top-3 peer-placeholder-shown:text-sm peer-placeholder-shown:text-zinc-500 peer-focus:top-[-10px] peer-focus:text-xs peer-focus:text-amber-500 peer-[:not(:placeholder-shown)]:top-[-10px] peer-[:not(:placeholder-shown)]:text-xs peer-[:not(:placeholder-shown)]:text-amber-500">
