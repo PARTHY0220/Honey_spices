@@ -114,6 +114,12 @@ const Navbar = ({ setView, currentView, cartCount = 0 }) => {
                 <div className="px-4 py-2 border-b border-white/5 text-[9px] uppercase font-mono tracking-widest text-zinc-500">
                   Welcome, {profile?.full_name || 'Terroir User'}
                 </div>
+                <button
+                  onClick={() => { setView('profile'); }}
+                  className="w-full text-left px-4 py-2 text-zinc-300 hover:text-amber-400 hover:bg-white/5 transition-all focus:outline-none cursor-pointer text-xs"
+                >
+                  My Profile
+                </button>
                 {profile?.role === 'admin' && (
                   <button
                     onClick={() => { setView('admin'); }}

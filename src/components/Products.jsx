@@ -3,9 +3,9 @@ import { useState, useMemo } from 'react';
 
 const CATEGORIES = [
   { id: 'all', name: 'All Categories' },
-  { id: 'single-origin', name: 'Single-Origin' },
-  { id: 'blends', name: 'Spice Blends' },
-  { id: 'honey-elixirs', name: 'Honey & Elixirs' }
+  { id: '100 gm', name: '100 gm' },
+  { id: '500 gm', name: '500 gm' },
+  { id: '1 kg', name: '1 kg' }
 ];
 
 const Products = ({ products, productsLoading = false, onProductClick, onAddToCart, showFilters = false, setView }) => {
@@ -15,7 +15,7 @@ const Products = ({ products, productsLoading = false, onProductClick, onAddToCa
   // Filters logic
   const filteredProducts = useMemo(() => {
     let result = products || [];
-    
+
     // If showFilters is false (homepage view), return only featured products (or first 3 fallback)
     if (!showFilters) {
       const featured = result.filter(p => p.featured);
@@ -25,16 +25,16 @@ const Products = ({ products, productsLoading = false, onProductClick, onAddToCa
     if (selectedCategory !== 'all') {
       result = result.filter(p => p.category === selectedCategory);
     }
-    
+
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       result = result.filter(
-        p => p.name.toLowerCase().includes(query) || 
-             p.origin.toLowerCase().includes(query) ||
-             p.description.toLowerCase().includes(query)
+        p => p.name.toLowerCase().includes(query) ||
+          p.origin.toLowerCase().includes(query) ||
+          p.description.toLowerCase().includes(query)
       );
     }
-    
+
     return result;
   }, [products, showFilters, selectedCategory, searchQuery]);
 
@@ -55,7 +55,7 @@ const Products = ({ products, productsLoading = false, onProductClick, onAddToCa
             {showFilters ? 'FULL CATALOGUE' : 'OUR CURATED SELECTION'}
           </span>
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-serif tracking-wider font-light text-white leading-tight mt-2">
-            {showFilters ? 'Explore the Spice Vault' : 'Signature Single-Origin Reserves'}
+            {showFilters ? 'Explore the Spices' : 'Signature Single-Origin Reserves'}
           </h2>
           <div className="w-16 h-[1px] bg-gradient-to-r from-transparent via-amber-500 to-transparent mx-auto mt-6"></div>
         </div>
@@ -83,11 +83,10 @@ const Products = ({ products, productsLoading = false, onProductClick, onAddToCa
                 <button
                   key={cat.id}
                   onClick={() => setSelectedCategory(cat.id)}
-                  className={`px-5 py-2.5 text-xs uppercase tracking-widest font-semibold border rounded-none transition-all duration-300 cursor-pointer focus:outline-none ${
-                    selectedCategory === cat.id
-                      ? 'border-amber-500 bg-amber-500 text-black shadow-[0_4px_12px_rgba(245,158,11,0.2)]'
-                      : 'border-white/10 bg-neutral-900/40 text-zinc-300 hover:text-white hover:border-white/30'
-                  }`}
+                  className={`px-5 py-2.5 text-xs uppercase tracking-widest font-semibold border rounded-none transition-all duration-300 cursor-pointer focus:outline-none ${selectedCategory === cat.id
+                    ? 'border-amber-500 bg-amber-500 text-black shadow-[0_4px_12px_rgba(245,158,11,0.2)]'
+                    : 'border-white/10 bg-neutral-900/40 text-zinc-300 hover:text-white hover:border-white/30'
+                    }`}
                 >
                   {cat.name}
                 </button>
@@ -127,9 +126,8 @@ const Products = ({ products, productsLoading = false, onProductClick, onAddToCa
                       {[...Array(5)].map((_, i) => (
                         <svg
                           key={i}
-                          className={`w-3.5 h-3.5 ${
-                            i < Math.floor(product.rating) ? 'fill-current' : 'stroke-current fill-none'
-                          }`}
+                          className={`w-3.5 h-3.5 ${i < Math.floor(product.rating) ? 'fill-current' : 'stroke-current fill-none'
+                            }`}
                           viewBox="0 0 20 20"
                           xmlns="http://www.w3.org/2000/svg"
                         >
@@ -146,7 +144,7 @@ const Products = ({ products, productsLoading = false, onProductClick, onAddToCa
                   <h3 className="text-xl font-serif tracking-wide text-white group-hover:text-amber-400 transition-colors duration-300 mb-1">
                     {product.name}
                   </h3>
-                  
+
                   {/* Origin */}
                   <div className="flex justify-between items-center mb-4 text-[10px] text-amber-400 font-mono">
                     <span className="italic">{product.origin}</span>

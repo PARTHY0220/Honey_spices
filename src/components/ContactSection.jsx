@@ -8,7 +8,7 @@ const ContactSection = ({ addToast }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formState.name || !formState.email || !formState.message) return;
-    
+
     setIsSubmitted(true);
     try {
       const { error } = await supabase
@@ -21,9 +21,9 @@ const ContactSection = ({ addToast }) => {
         });
 
       if (error) throw error;
-      
+
       if (addToast) addToast("Inquiry successfully transmitted to L'Épice Sommelier!", 'success');
-      
+
       setTimeout(() => {
         setIsSubmitted(false);
         setFormState({ name: '', email: '', message: '' });
@@ -52,38 +52,40 @@ const ContactSection = ({ addToast }) => {
         {/* Left Column: Direct Concierge Contacts */}
         <div className="lg:col-span-5">
           <span className="text-[10px] tracking-[0.45em] uppercase text-amber-400 font-bold mb-4 block">
-            CONCIERGE DESK
+            Inquiry DESK
           </span>
           <h2 className="text-3xl sm:text-4xl font-serif tracking-wider font-light text-white leading-tight mb-8">
             Begin Your <br />
-            <span className="italic font-normal text-amber-400">Aromatic Inquiry</span>
+            <span className="italic font-normal text-amber-400">Spices Inquiry</span>
           </h2>
           <div className="w-12 h-[1px] bg-amber-500/40 mb-8"></div>
-          
+
           <p className="text-zinc-300 text-sm tracking-wide leading-relaxed font-light mb-12 max-w-md">
-            Whether securing rare single-origin reserves, requesting custom blends for premium culinary operations, or seeking advice from our spice sommeliers, our concierge team is available to assist.
+            Whether you're looking for premium spices, authentic masalas, high-quality dry fruits, or custom bulk orders, our Honey Spices team is here to assist you. From product recommendations to order support and business inquiries, we're committed to providing you with the finest products and exceptional customer service.
           </p>
 
           {/* Contact Details List */}
           <div className="space-y-8 text-sm">
             <div>
               <p className="text-[10px] tracking-widest uppercase text-white font-mono mb-2">
-                Paris Head Office
+                Kalol Panchmahal, Gujarat
               </p>
               <p className="text-zinc-300 font-light tracking-wide">
-                12 Rue de L'Éspice, 75001 Paris, France
+                Kalol Station Road, Panchmahal, Gujarat, India
               </p>
             </div>
-            
+
             <div>
               <p className="text-[10px] tracking-widest uppercase text-white font-mono mb-2">
                 Direct Inquiries
               </p>
               <p className="text-zinc-300 font-light tracking-wide mb-1">
-                Email: <a href="mailto:concierge@lepice.com" className="text-amber-400 hover:text-amber-500 font-semibold transition-colors">concierge@lepice.com</a>
+                Email: <a href="mailto:info@honeyspices.in" className="text-amber-400 hover:text-amber-500 font-semibold transition-colors">info@honeyspices.in</a>
               </p>
               <p className="text-zinc-300 font-light tracking-wide">
-                Phone: +33 (0) 1 42 68 55 00
+                Phone: +91 7779078998
+                <br />
+                +91 8128922353
               </p>
             </div>
 
@@ -92,7 +94,7 @@ const ContactSection = ({ addToast }) => {
                 Sommelier Hours
               </p>
               <p className="text-zinc-300 font-light tracking-wide">
-                Monday — Friday: 09:00 - 18:00 CET
+                Monday — Saturday: 09:00 - 18:00 IST
               </p>
             </div>
           </div>
@@ -178,7 +180,7 @@ const ContactSection = ({ addToast }) => {
               </div>
               <h4 className="text-lg font-serif text-white tracking-wide mb-2">Inquiry Received</h4>
               <p className="text-zinc-300 text-xs max-w-xs font-light leading-relaxed">
-                Thank you. A specialized L'ÉPICE Sommelier has been assigned to your request and will contact you shortly.
+                Thank you. Our Customer representative has been assigned to your request and will contact you shortly.
               </p>
             </div>
           )}
@@ -207,7 +209,7 @@ const ContactSection = ({ addToast }) => {
             >
               <path d="M12.004 0C5.372 0 0 5.372 0 12.004c0 2.116.55 4.102 1.513 5.838L0 24l6.34-1.662c1.7.927 3.633 1.417 5.66 1.417 6.63 0 12.003-5.373 12.003-12.005C24.004 5.372 18.631 0 12.004 0zm6.81 17.078c-.28.784-1.378 1.436-2.253 1.526-.6.062-1.385.093-2.18-.162-2.915-.933-5.01-3.79-5.156-3.985-.145-.195-1.185-1.58-1.185-3.023 0-1.443.753-2.15 1.023-2.433.27-.282.592-.352.79-.352.196 0 .393.002.56.01.173.008.406-.065.635.485.23.55.787 1.916.854 2.052.068.136.113.294.023.475-.09.18-.135.293-.27.452-.136.158-.286.353-.408.474-.136.136-.278.283-.12.553.157.27.7 1.152 1.5 1.865.798.712 1.47 1.042 1.772 1.177.302.135.481.113.662-.09.18-.204.782-.91.99-1.22.208-.31.417-.26.702-.153.284.108 1.802.85 2.11 1.003.308.153.514.23.59.356.074.128.074.74-.206 1.524z" />
             </svg>
-            <span>Sommelier WhatsApp Chat</span>
+            <span>WhatsApp Chat</span>
           </a>
         </div>
       </div>
