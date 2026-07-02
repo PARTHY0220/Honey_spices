@@ -86,10 +86,13 @@ const Footer = ({ setView }) => {
             Concierge Desk
           </p>
           <div className="space-y-2.5 text-xs leading-relaxed text-zinc-300 font-light">
-            <p>12 Rue de L'Éspice, 75001 Paris, France</p>
-            <p>Phone: +33 (0) 1 42 68 55 00</p>
-            <p>Email: concierge@lepice.com</p>
-            <p className="text-[10px] text-amber-500 font-mono uppercase font-bold">Mon — Fri: 09:00 - 18:00 CET</p>
+            <p>Honey Spices, Kalol, Panchmahal, Gujarat - 389330, India</p>
+            <p>Phone: +91 77790 78998</p>
+            <p>Phone: +91 81289 22353</p>
+            <p>Email: info@honeyspices.in</p>
+            <p className="text-[10px] text-amber-500 font-mono uppercase font-bold">
+              Mon — Sat: 09:00 AM - 06:00 PM IST
+            </p>
           </div>
         </div>
 
